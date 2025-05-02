@@ -82,6 +82,14 @@ class transmit_array:
     def set_random_phase_shift(self):
         self.phase_shift = np.pi * np.random.randint(0, 2, self.nb_cell)
         
+    def set_specific_phase_shift(self):
+        idx = 0
+        for idx_x in range(0, self.n_cell_x):
+            for idx_y in range(0, self.n_cell_y):
+                if idx_x < self.n_cell_x / 2:
+                    self.phase_shift[idx] = np.pi
+                idx = idx + 1
+        
     def phase_shifts(self):
         return self.phase_shift.reshape((self.n_cell_x, self.n_cell_y))
     
