@@ -138,7 +138,7 @@ class transmit_array:
         dp = np.empty(self.nb_cell)
         theta_out = np.empty(self.nb_cell)
         phi_out = np.empty(self.nb_cell)
-        rad_field = 0
+        rad_field = np.complex128(0.)
         
         idx = 0
         for x in self.x:
@@ -148,11 +148,15 @@ class transmit_array:
                 theta_out[idx] = np.acos(z_rad / dp[idx])
                 phi_out[idx] = np.acos((y_rad - y)/np.sqrt(np.square(x_rad - x) \
                                + np.square(y_rad - y)))
-                
-                rad_field = rad_field + \
-                    self.unit_cell.radiated_field_from_sig(
-                        self.output_sig[idx], wavelgth, dp[idx], 
+
+                rad_field_ucell = self.unit_cell.radiated_field_from_sig(
+                        self.output_sig[idx], wavelgth, dp[idx],
                         theta_out[idx], phi_out[idx])
+                # print([x, y, self.output_sig[idx], rad_field_ucell])
+                rad_field = rad_field + rad_field_ucell
+
+                idx = idx + 1
+
                     
         return rad_field
                 
