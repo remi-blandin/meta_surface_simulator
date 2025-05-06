@@ -97,6 +97,7 @@ plt.figure()
 # plt.imshow(np.abs(rad_field))
 plt.imshow(np.real(rad_field_yz))
 # plt.imshow(np.abs(np.real(rad_field)))
+plt.show()
 
 rad_field_xz = np.empty(n_x*n_y, dtype=np.complex128)
 
@@ -110,3 +111,4 @@ rad_field_xz = rad_field_xz.reshape(n_x, n_z)
         
 plt.figure()
 plt.imshow(np.real(rad_field_xz))
+plt.show()
