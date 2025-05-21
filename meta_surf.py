@@ -64,6 +64,8 @@ class transmit_array:
         self.phase_shift = np.zeros(self.nb_cell)
         self.source = source
         self.dist_src = dist_src
+        self.input_sig = np.zeros(self.nb_cell, dtype=np.complex128)
+        self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
         
         # generate the coordinates of the centers of the cells
         x_min = -self.unit_cell.side_length * (self.n_cell_x - 1)/2. 
@@ -84,7 +86,7 @@ class transmit_array:
                 self.y_ordered[idx] = y
                 idx = idx + 1
         
-        self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
+        
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -117,43 +119,49 @@ class transmit_array:
         return self.output_sig.reshape(self.n_cell_x, self.n_cell_y)
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def input_coords(self):
+        ds = np.sqrt(np.square(self.x_ordered) + \
+                          np.square(self.y_ordered)\
+                          + np.square(self.dist_src))
+        theta_in = np.acos(self.dist_src / ds)
+        phi_in = np.acos(self.y_ordered / np.sqrt(np.square(self.x_ordered) + \
+                                    + np.square(self.y_ordered)))
+            
+        return ds, theta_in, phi_in
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def inout_signals(self, wavelgth, power):
+        
+        ds, theta_in, phi_in = self.input_coords()
+
+        input_signals = self.source.radiated_field(
+            theta_in, phi_in, wavelgth, power, ds
+            )
+        
+        self.input_sig = input_signals
+        
+        input_signals = input_signals.reshape((self.n_cell_x, self.n_cell_y))
+        
+        return input_signals
+        
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def output_signals(self, wavelgth, power):
+            
+        ds, theta_in, phi_in = self.input_coords()
         
-        # generate coords
-        coords = np.empty((self.nb_cell, 2))
-        ds = np.empty(self.nb_cell)
-        theta_in = np.empty(self.nb_cell)
-        phi_in = np.empty(self.nb_cell)
-        incoming_wave = np.empty(self.nb_cell, dtype=np.complex128)
-        output_sig = np.empty(self.nb_cell, dtype=np.complex128)
-        
-        idx = 0
-        for x in self.x:
-            for y in self.y:
-                coords[idx, 0] = x
-                coords[idx, 1] = y
-                ds[idx] = np.sqrt(x * x + y * y + np.square(self.dist_src))
-                theta_in[idx] = np.acos(self.dist_src / ds[idx])
-                phi_in[idx] = np.acos(y / np.sqrt(x * x + y * y))
-                
-                incoming_wave[idx] = self.source.radiated_field(
-                    theta_in[idx], phi_in[idx], wavelgth, power, ds[idx]
-                    )
-                
-                output_sig[idx] = self.unit_cell.output_sig(
-                    incoming_wave[idx], theta_in[idx], phi_in[idx], wavelgth, 
-                    self.phase_shift[idx])
-                
-                idx = idx + 1
+        output_sig = self.unit_cell.output_sig(
+            self.input_sig, theta_in, phi_in, wavelgth, 
+            self.phase_shift)
                 
         self.output_sig = output_sig
                 
-        incoming_wave = incoming_wave.reshape((self.n_cell_x, self.n_cell_y))
         output_sig = output_sig.reshape((self.n_cell_x, self.n_cell_y))
         
-                
-        return coords, ds, theta_in, phi_in, incoming_wave, output_sig
+        return output_sig
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     

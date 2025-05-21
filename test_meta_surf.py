@@ -9,12 +9,12 @@ from meta_surf import *
 
 unit_cell_side_lgth = 0.03
 dist_src = 0.25
-wavelgth = 0.03
+wavelgth = 0.06
 power = 1
 n_cells_x = 20
 n_cells_y = 20
-# phase_mask = "devided_in_half"
-phase_mask = "random"
+phase_mask = "devided_in_half"
+# phase_mask = "random"
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
@@ -24,14 +24,15 @@ horn = simplified_horn_source(5)
 
 ta = transmit_array(n_cells_x, n_cells_y, ucell, horn, dist_src)
 
+# generate phase mask
 if phase_mask == "random":
     ta.set_random_phase_shift()
 elif phase_mask == "devided_in_half":
     ta.set_phase_shift_devided_in_half()
-
-#FIXME: test and optimise this function
-coords, ds, theta_in, phi_in, incoming_wave, output_sig = ta.output_signals(
-    wavelgth, power)
+    
+# compute input and output signals
+input_signals = ta.inout_signals(wavelgth, power)
+output_sig = ta.output_signals(wavelgth, power)
 
 # plot phase mask, input and ouput signals
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
@@ -39,7 +40,7 @@ fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 ax1.imshow(ta.phase_shifts())
 ax1.set_title('Phase mask')
 
-ax2.imshow(np.real(incoming_wave))
+ax2.imshow(np.real(input_signals))
 ax2.set_title("Input signal")
 
 ax3.imshow(np.real(output_sig))
