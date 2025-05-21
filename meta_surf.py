@@ -109,6 +109,32 @@ class transmit_array:
                 idx = idx + 1
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_phase_shift_beam(self, theta_beam, phi_beam, wavelgth, quantize=True ):
+        for idx in range(0, self.nb_cell):
+            self.phase_shift[idx] = \
+            -2.* np.pi * np.sin(theta_beam) * ( \
+            np.cos(phi_beam) * self.x_ordered[idx] \
+            + np.sin(phi_beam) * self.y_ordered[idx] \
+                ) / wavelgth 
+            if quantize:
+                self.phase_shift[idx]  = \
+                    round((self.phase_shift[idx] % np.pi) / np.pi) * np.pi
+                    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_phase_shift_focal_point(self, x_focal, y_focal, z_focal, wavelgth, quantize=True):
+        for idx in range(0, self.nb_cell):
+            self.phase_shift[idx] = \
+                (-2. * np.pi * (np.sqrt(np.square(z_focal) + \
+             np.square(self.x_ordered[idx] - x_focal) + \
+             np.square(self.y_ordered[idx] - y_focal)) \
+                    - z_focal) / wavelgth)  % (2. * np.pi)
+            if quantize:
+                self.phase_shift[idx]  = \
+                    round(((self.phase_shift[idx]) % np.pi) / np.pi) * np.pi
+                
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def phase_shifts(self):
         return self.phase_shift.reshape((self.n_cell_x, self.n_cell_y))

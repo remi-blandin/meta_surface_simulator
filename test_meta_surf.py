@@ -8,13 +8,24 @@ from meta_surf import *
 # parameters
 
 unit_cell_side_lgth = 0.03
-dist_src = 0.25
+dist_src = 10
 wavelgth = 0.06
 power = 1
 n_cells_x = 20
 n_cells_y = 20
-phase_mask = "devided_in_half"
+# phase_mask = "devided_in_half"
 # phase_mask = "random"
+
+# phase_mask = "beam"
+theta_beam = 2*np.pi/3
+phi_beam = 0
+
+phase_mask = "focal_point"
+x_focal = 0.
+y_focal = 0
+z_focal = 0.3
+
+quant = True
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
@@ -29,6 +40,10 @@ if phase_mask == "random":
     ta.set_random_phase_shift()
 elif phase_mask == "devided_in_half":
     ta.set_phase_shift_devided_in_half()
+elif phase_mask == "beam":
+    ta.set_phase_shift_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
+elif phase_mask == "focal_point":
+    ta.set_phase_shift_focal_point(x_focal, y_focal, z_focal, wavelgth, quantize=quant)
     
 # compute input and output signals
 input_signals = ta.inout_signals(wavelgth, power)
@@ -51,12 +66,13 @@ ax3.set_title("Output signal")
 
 # generate a grid of points on which to compute the radiated field
 ta_width = n_cells_x * unit_cell_side_lgth
+side_length = 1*ta_width
 n_x = 50
 n_y = 50
 n_z = 50
-x_rad = np.linspace(0, ta_width, n_x) - ta_width/2
-y_rad = np.linspace(0, ta_width, n_y) - ta_width/2
-z_rad = np.linspace(0, ta_width, n_y)
+x_rad = np.linspace(0, side_length, n_x) - side_length/2
+y_rad = np.linspace(0, side_length, n_y) - side_length/2
+z_rad = np.linspace(0, side_length, n_y)
 
 # In the xy plane
 rad_field_yz = np.empty(n_x*n_y, dtype=np.complex128)
