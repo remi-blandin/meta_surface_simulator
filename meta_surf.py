@@ -98,7 +98,7 @@ class transmit_array:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
-    def set_specific_phase_shift(self):
+    def set_phase_shift_devided_in_half(self):
         idx = 0
         for idx_x in range(0, self.n_cell_x):
             for idx_y in range(0, self.n_cell_y):
