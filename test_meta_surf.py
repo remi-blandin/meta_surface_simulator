@@ -1,11 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from meta_surf import *
 
 # parameters
 unit_cell_side_lgth = 0.03
-dist_src = 0.5
+dist_src = 0.25
 wavelgth = 0.06
 power = 1
 n_cells_x = 20
@@ -15,8 +16,8 @@ ucell = simple_unit_cell(unit_cell_side_lgth)
 horn = simplified_horn_source(5)
 
 ta = transmit_array(n_cells_x, n_cells_y, ucell, horn, dist_src)
-ta.set_random_phase_shift()
-# ta.set_specific_phase_shift()
+# ta.set_random_phase_shift()
+ta.set_specific_phase_shift()
 
 # plt.figure()
 # plt.imshow(np.abs(ta.output_sigs()))
@@ -102,11 +103,17 @@ plt.show()
 
 rad_field_xz = np.empty(n_x*n_y, dtype=np.complex128)
 
+start_time = time.time() 
+
 idx = 0
 for z in z_rad:
     for x in x_rad:
         rad_field_xz[idx] = ta.radiated_field(x, 0., z, wavelgth)
         idx = idx + 1
+        
+end_time = time.time() 
+execution_time = end_time - start_time
+print(f"Execution time: {execution_time} seconds")
         
 rad_field_xz = rad_field_xz.reshape(n_x, n_z)
         

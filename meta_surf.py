@@ -74,13 +74,29 @@ class transmit_array:
         y_max = -y_min
         self.y = np.linspace(y_min, y_max, self.n_cell_y)
         
+        # Generate lists containing the coordinates ordered by pairs
+        self.x_ordered = np.empty(self.nb_cell)
+        self.y_ordered = np.empty(self.nb_cell)
+        idx = 0
+        for x in self.x:
+            for y in self.y:
+                self.x_ordered[idx] = x
+                self.y_ordered[idx] = y
+                idx = idx + 1
+        
         self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_phase_shift(self, value):
         self.phase_shift.fill(value)
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
     def set_random_phase_shift(self):
         self.phase_shift = np.pi * np.random.randint(0, 2, self.nb_cell)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_specific_phase_shift(self):
         idx = 0
@@ -89,12 +105,18 @@ class transmit_array:
                 if idx_x < self.n_cell_x / 2:
                     self.phase_shift[idx] = np.pi
                 idx = idx + 1
+                
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def phase_shifts(self):
         return self.phase_shift.reshape((self.n_cell_x, self.n_cell_y))
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def output_sigs(self):
         return self.output_sig.reshape(self.n_cell_x, self.n_cell_y)
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def output_signals(self, wavelgth, power):
         
@@ -133,31 +155,24 @@ class transmit_array:
                 
         return coords, ds, theta_in, phi_in, incoming_wave, output_sig
     
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
     def radiated_field(self, x_rad, y_rad, z_rad, wavelgth):
-        
-        dp = np.empty(self.nb_cell)
-        theta_out = np.empty(self.nb_cell)
-        phi_out = np.empty(self.nb_cell)
-        rad_field = np.complex128(0.)
-        
-        idx = 0
-        for x in self.x:
-            for y in self.y:
-                dp[idx] = np.sqrt(np.square(x - x_rad) + np.square(y - y_rad) +\
-                             np.square(z_rad))
-                theta_out[idx] = np.acos(z_rad / dp[idx])
-                phi_out[idx] = np.acos((y_rad - y)/np.sqrt(np.square(x_rad - x) \
-                               + np.square(y_rad - y)))
-
-                rad_field_ucell = self.unit_cell.radiated_field_from_sig(
-                        self.output_sig[idx], wavelgth, dp[idx],
-                        theta_out[idx], phi_out[idx])
-                # print([x, y, self.output_sig[idx], rad_field_ucell])
-                rad_field = rad_field + rad_field_ucell
-
-                idx = idx + 1
-
+                
+        dp = np.sqrt(np.square(self.x_ordered - x_rad) + \
+                     np.square(self.y_ordered - y_rad) +\
+                     np.square(z_rad))
+        theta_out = np.acos(z_rad / dp)
+        phi_out = np.acos((y_rad - self.y_ordered) / \
+                       np.sqrt(np.square(x_rad - self.x_ordered) \
+                       + np.square(y_rad - self.y_ordered)))
                     
+        rad_field = self.unit_cell.radiated_field_from_sig(
+                self.output_sig, wavelgth, dp,
+                theta_out, phi_out)
+        
+        rad_field = rad_field.sum()
+        
         return rad_field
                 
                 
