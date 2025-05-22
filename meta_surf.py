@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Union
 
 #----------------------------------------------------------------------------#
 
@@ -209,5 +210,56 @@ class transmit_array:
         
         return rad_field
                 
+#----------------------------------------------------------------------------#
+
+sourceType = Union[transmit_array, simplified_horn_source]
+
+class desordered_medium:
+    """A simple disordered model"""
+    
+    def __init__(self, scat_pos: np.ndarray, source: sourceType):
+        nb_scat = scat_pos.shape[0]
+        self.nb_scat = nb_scat
+        self.source = source
+        self.scat_pos = scat_pos
+        self.polarizability = np.ones(nb_scat)
+        self.Gin = np.empty((1, nb_scat), dtype=np.complex128)
+        self.Gout = np.empty((nb_scat, 1), dtype=np.complex128)
+        self.Gdd = np.zeros((nb_scat, nb_scat), dtype=np.complex128)
+        self.T = np.zeros(1, dtype=np.complex128)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
+    def E_field(self, obs_pt, wavelgth):
+        
+        # wavenumber
+        k = 2.*np.pi / wavelgth
+        
+        # compute input and output Green functions
+        for idx, scat in enumerate(self.scat_pos):
+            self.Gin[0,idx] = self.source.radiated_field(\
+                scat[0], scat[1], scat[2], wavelgth)
+            
+            d_scat_obs = np.sqrt(np.square(self.scat_pos[idx,:] - obs_pt).sum())
+            self.Gout[idx] = np.exp(1j * k * d_scat_obs) / d_scat_obs
                 
+        # compute between scatterers coupling Green functions
+        for i in range(0, self.nb_scat):
+            for j in range(0, self.nb_scat):
+                if i != j:
+                    d_scat = np.sqrt(np.square(self.scat_pos[i,:] - \
+                                      self.scat_pos[j,:]).sum())
+                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat
+                else:
+                    self.Gdd[i,j] = 0.
+                
+        # compute transmission matrix or coefficient              
+        rad_field = np.matmul(np.matmul(self.Gin, \
+                      np.linalg.solve((np.eye(self.nb_scat) - self.Gdd).T, \
+                        np.diag(self.polarizability).T).T),\
+                      self.Gout)
+            
+        return rad_field
+        
+            
         

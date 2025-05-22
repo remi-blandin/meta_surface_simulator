@@ -13,19 +13,19 @@ wavelgth = 0.06
 power = 1
 n_cells_x = 20
 n_cells_y = 20
-# phase_mask = "devided_in_half"
+phase_mask = "devided_in_half"
 # phase_mask = "random"
 
 # phase_mask = "beam"
 theta_beam = 2*np.pi/3
 phi_beam = 0
 
-phase_mask = "focal_point"
+# phase_mask = "focal_point"
 x_focal = 0.
 y_focal = 0
 z_focal = 0.3
 
-quant = True
+quant = False
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
