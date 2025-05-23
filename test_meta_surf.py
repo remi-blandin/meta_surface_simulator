@@ -37,13 +37,13 @@ ta = transmit_array(n_cells_x, n_cells_y, ucell, horn, dist_src)
 
 # generate phase mask
 if phase_mask == "random":
-    ta.set_random_phase_shift()
+    ta.set_random_phase_mask()
 elif phase_mask == "devided_in_half":
-    ta.set_phase_shift_devided_in_half()
+    ta.set_phase_mask_devided_in_half()
 elif phase_mask == "beam":
-    ta.set_phase_shift_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
+    ta.set_phase_mask_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
 elif phase_mask == "focal_point":
-    ta.set_phase_shift_focal_point(x_focal, y_focal, z_focal, wavelgth, quantize=quant)
+    ta.set_phase_mask_focal_point(x_focal, y_focal, z_focal, wavelgth, quantize=quant)
     
 # compute input and output signals
 input_signals = ta.inout_signals(wavelgth, power)
@@ -52,7 +52,7 @@ output_sig = ta.output_signals(wavelgth, power)
 # plot phase mask, input and ouput signals
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
                                     
-ax1.imshow(ta.phase_shifts())
+ax1.imshow(ta.get_phase_mask())
 ax1.set_title('Phase mask')
 
 ax2.imshow(np.real(input_signals))
