@@ -13,17 +13,15 @@ wavelgth = 0.06
 power = 1
 n_cells_x = 20
 n_cells_y = 20
-phase_mask = "devided_in_half"
+# phase_mask = "devided_in_half"
 # phase_mask = "random"
 
 # phase_mask = "beam"
 theta_beam = 2*np.pi/3
 phi_beam = 0
 
-# phase_mask = "focal_point"
-x_focal = 0.
-y_focal = 0
-z_focal = 0.3
+phase_mask = "focal_point"
+focal_point = point(0., 0., 0.3)
 
 quant = False
 
@@ -43,7 +41,7 @@ elif phase_mask == "devided_in_half":
 elif phase_mask == "beam":
     ta.set_phase_mask_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
 elif phase_mask == "focal_point":
-    ta.set_phase_mask_focal_point(x_focal, y_focal, z_focal, wavelgth, quantize=quant)
+    ta.set_phase_mask_focal_point(focal_point, wavelgth, quantize=quant)
     
 # compute input and output signals
 input_signals = ta.inout_signals(wavelgth, power)
@@ -79,7 +77,8 @@ rad_field_yz = np.empty(n_x*n_y, dtype=np.complex128)
 idx = 0
 for z in z_rad:
     for y in y_rad:
-        rad_field_yz[idx] = ta.field(0., y, z, wavelgth)
+        rad_pt = point(0., y, z)
+        rad_field_yz[idx] = ta.field(rad_pt, wavelgth)
         idx = idx + 1  
 rad_field_yz = rad_field_yz.reshape(n_y, n_z)
 
@@ -89,7 +88,8 @@ start_time = time.time()
 idx = 0
 for z in z_rad:
     for x in x_rad:
-        rad_field_xz[idx] = ta.field(x, 0., z, wavelgth)
+        rad_pt = point(x, 0., z)
+        rad_field_xz[idx] = ta.field(rad_pt, wavelgth)
         idx = idx + 1
 end_time = time.time() 
 execution_time = end_time - start_time

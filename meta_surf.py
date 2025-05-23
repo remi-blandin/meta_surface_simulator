@@ -3,6 +3,24 @@ from typing import Union
 
 #----------------------------------------------------------------------------#
 
+class point:
+    
+    """A cartesian point"""
+    
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def distance_to(self, other_point):
+        return np.sqrt((self.x - other_point.x)**2 + \
+                       (self.y - other_point.y)**2 + \
+                       (self.z - other_point.z)**2)
+
+#----------------------------------------------------------------------------#
+
 class simple_unit_cell:
     """A simple model for a unit cell"""
     
@@ -87,8 +105,6 @@ class transmit_array:
                 self.y_ordered[idx] = y
                 idx = idx + 1
         
-        
-        
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_phase_mask(self, value):
@@ -125,14 +141,14 @@ class transmit_array:
                     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_phase_mask_focal_point(self, x_focal, y_focal, z_focal, \
+    def set_phase_mask_focal_point(self, focal_point, \
                                     wavelgth, quantize=True):
         for idx in range(0, self.nb_cell):
             self.phase_mask[idx] = \
-                (-2. * np.pi * (np.sqrt(np.square(z_focal) + \
-             np.square(self.x_ordered[idx] - x_focal) + \
-             np.square(self.y_ordered[idx] - y_focal)) \
-                    - z_focal) / wavelgth)  % (2. * np.pi)
+                (-2. * np.pi * (np.sqrt(np.square(focal_point.z) + \
+             np.square(self.x_ordered[idx] - focal_point.x) + \
+             np.square(self.y_ordered[idx] - focal_point.y)) \
+                    - focal_point.z) / wavelgth)  % (2. * np.pi)
             if quantize:
                 self.phase_mask[idx]  = \
                     round(((self.phase_mask[idx]) % np.pi) / np.pi) * np.pi
@@ -194,15 +210,15 @@ class transmit_array:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def field(self, x_rad, y_rad, z_rad, wavelgth):
+    def field(self, point, wavelgth):
                 
-        dp = np.sqrt(np.square(self.x_ordered - x_rad) + \
-                     np.square(self.y_ordered - y_rad) +\
-                     np.square(z_rad))
-        theta_out = np.acos(z_rad / dp)
-        phi_out = np.acos((y_rad - self.y_ordered) / \
-                       np.sqrt(np.square(x_rad - self.x_ordered) \
-                       + np.square(y_rad - self.y_ordered)))
+        dp = np.sqrt(np.square(self.x_ordered - point.x) + \
+                     np.square(self.y_ordered - point.y) +\
+                     np.square(point.z))
+        theta_out = np.acos(point.z / dp)
+        phi_out = np.acos((point.y - self.y_ordered) / \
+                       np.sqrt(np.square(point.x - self.x_ordered) \
+                       + np.square(point.y - self.y_ordered)))
                     
         rad_field = self.unit_cell.field_from_sig(
                 self.output_sig, wavelgth, dp,
@@ -219,11 +235,11 @@ sourceType = Union[transmit_array, simplified_horn_source]
 class desordered_medium:
     """A simple disordered model"""
     
-    def __init__(self, scat_pos: np.ndarray, source: sourceType):
-        nb_scat = scat_pos.shape[0]
+    def __init__(self, scat_pos: list[point], source: sourceType):
+        nb_scat = len(scat_pos)
         self.nb_scat = nb_scat
-        self.source = source
         self.scat_pos = scat_pos
+        self.source = source
         self.polarizability = np.ones(nb_scat)
         self.Gin = np.empty((1, nb_scat), dtype=np.complex128)
         self.Gout = np.empty((nb_scat, 1), dtype=np.complex128)
@@ -240,17 +256,16 @@ class desordered_medium:
         # compute input and output Green functions
         for idx, scat in enumerate(self.scat_pos):
             self.Gin[0,idx] = self.source.field(\
-                scat[0], scat[1], scat[2], wavelgth)
+                scat, wavelgth)
             
-            d_scat_obs = np.sqrt(np.square(self.scat_pos[idx,:] - obs_pt).sum())
+            d_scat_obs = scat.distance_to(obs_pt)
             self.Gout[idx] = np.exp(1j * k * d_scat_obs) / d_scat_obs
                 
         # compute between scatterers coupling Green functions
         for i in range(0, self.nb_scat):
             for j in range(0, self.nb_scat):
                 if i != j:
-                    d_scat = np.sqrt(np.square(self.scat_pos[i,:] - \
-                                      self.scat_pos[j,:]).sum())
+                    d_scat = self.scat_pos[i].distance_to(self.scat_pos[j])
                     self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat
                 else:
                     self.Gdd[i,j] = 0.

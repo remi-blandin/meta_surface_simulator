@@ -14,16 +14,14 @@ n_cells_x = 20
 n_cells_y = 20
 
 # phase_mask = "devided_in_half"
-phase_mask = "random"
+# phase_mask = "random"
 
 # phase_mask = "beam"
 theta_beam = 2*np.pi/3
 phi_beam = 0
 
-# phase_mask = "focal_point"
-x_focal = 0.
-y_focal = 0
-z_focal = 0.3
+phase_mask = "focal_point"
+focal_point = point(0., 0., 0.3)
 
 quant = False
 
@@ -45,7 +43,7 @@ elif phase_mask == "devided_in_half":
 elif phase_mask == "beam":
     ta.set_phase_mask_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
 elif phase_mask == "focal_point":
-    ta.set_phase_mask_focal_point(x_focal, y_focal, z_focal, wavelgth, quantize=quant)
+    ta.set_phase_mask_focal_point(focal_point, wavelgth, quantize=quant)
     
 # compute input and output signals
 input_signals = ta.inout_signals(wavelgth, power)
@@ -66,13 +64,14 @@ ax3.set_title("Output signal")
 #----------------------------------------------------------------------------#
 # Create desordered medium
 
-scat_pos = np.array([[0.1, 0., 0.1], [0.2, 0., 0.1], [0.1, 0., 0.2]])
+scat_pos = [point(0.1, 0., 0.1), point(0.2, 0., 0.1), point(0.1, 0., 0.2)]
+# scat_pos = np.array([[0.1, 0., 0.1], [0.2, 0., 0.1], [0.1, 0., 0.2]])
 dm = desordered_medium(scat_pos, ta)
 
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
-obs_pos = np.array([0., 0., 0.4])
+obs_pos = point(0., 0., 0.4)
 rad_field = dm.field(obs_pos, wavelgth)
 
 print(rad_field)
