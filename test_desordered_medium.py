@@ -73,6 +73,6 @@ dm = desordered_medium(scat_pos, ta)
 # compute the radiated field
 
 obs_pos = np.array([0., 0., 0.4])
-rad_field = dm.E_field(obs_pos, wavelgth)
+rad_field = dm.field(obs_pos, wavelgth)
 
 print(rad_field)

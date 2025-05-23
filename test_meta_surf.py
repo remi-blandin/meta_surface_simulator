@@ -79,7 +79,7 @@ rad_field_yz = np.empty(n_x*n_y, dtype=np.complex128)
 idx = 0
 for z in z_rad:
     for y in y_rad:
-        rad_field_yz[idx] = ta.radiated_field(0., y, z, wavelgth)
+        rad_field_yz[idx] = ta.field(0., y, z, wavelgth)
         idx = idx + 1  
 rad_field_yz = rad_field_yz.reshape(n_y, n_z)
 
@@ -89,7 +89,7 @@ start_time = time.time()
 idx = 0
 for z in z_rad:
     for x in x_rad:
-        rad_field_xz[idx] = ta.radiated_field(x, 0., z, wavelgth)
+        rad_field_xz[idx] = ta.field(x, 0., z, wavelgth)
         idx = idx + 1
 end_time = time.time() 
 execution_time = end_time - start_time

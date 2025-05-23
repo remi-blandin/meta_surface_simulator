@@ -21,11 +21,6 @@ plt.figure()
 plt.plot(theta, directivity)
 plt.show()
 
-# plt.figure()
-# plt.plot(theta, input_sig)
-# plt.show()
-
-
 horn_order = range(1, 6)
 plt.figure()
 
@@ -40,7 +35,7 @@ plt.show()
 
 # test horn radiation
 horn = simplified_horn_source(5)
-rad_field = horn.radiated_field(theta, phi, wavelgth, power, dist)
+rad_field = horn.field(theta, phi, wavelgth, power, dist)
 
 plt.figure()
 plt.plot(theta, np.real(rad_field))

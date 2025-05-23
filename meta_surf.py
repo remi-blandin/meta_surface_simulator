@@ -21,14 +21,14 @@ class simple_unit_cell:
         return self.input_sig(incoming_wave, theta, phi, wavelgth) * \
             np.exp(-1j * phase_shift)
             
-    def radiated_field(self, incoming_wave, theta, phi, wavelgth, phase_shift, \
+    def field(self, incoming_wave, theta, phi, wavelgth, phase_shift, \
                        dist, theta_out, phi_out):
         return self.output_sig(incoming_wave, theta, phi, wavelgth, phase_shift) \
             * self.directivity(theta_out, phi_out, wavelgth) \
                 * wavelgth * np.exp(-1j * 2. * np.pi * dist / wavelgth) \
                     /4. / np.pi / dist
                     
-    def radiated_field_from_sig(self, output_sig, wavelgth, dist,\
+    def field_from_sig(self, output_sig, wavelgth, dist,\
                                 theta_out, phi_out):
         return output_sig \
             * self.directivity(theta_out, phi_out, wavelgth) \
@@ -46,7 +46,7 @@ class simplified_horn_source:
     def directivity(self, theta, phi, wavelgth):
         return 2.*(self.order + 1) * np.pow(np.cos(theta), self.order)
     
-    def radiated_field(self, theta, phi, wavelgth, power, dist):
+    def field(self, theta, phi, wavelgth, power, dist):
         return np.sqrt(power) * wavelgth * \
             np.exp(-1j * 2. * np.pi * dist /wavelgth) * \
                 self.directivity(theta, phi, wavelgth) / 4. / np.pi / dist
@@ -163,7 +163,7 @@ class transmit_array:
         
         ds, theta_in, phi_in = self.input_coords()
 
-        input_signals = self.source.radiated_field(
+        input_signals = self.source.field(
             theta_in, phi_in, wavelgth, power, ds
             )
         
@@ -192,7 +192,7 @@ class transmit_array:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def radiated_field(self, x_rad, y_rad, z_rad, wavelgth):
+    def field(self, x_rad, y_rad, z_rad, wavelgth):
                 
         dp = np.sqrt(np.square(self.x_ordered - x_rad) + \
                      np.square(self.y_ordered - y_rad) +\
@@ -202,7 +202,7 @@ class transmit_array:
                        np.sqrt(np.square(x_rad - self.x_ordered) \
                        + np.square(y_rad - self.y_ordered)))
                     
-        rad_field = self.unit_cell.radiated_field_from_sig(
+        rad_field = self.unit_cell.field_from_sig(
                 self.output_sig, wavelgth, dp,
                 theta_out, phi_out)
         
@@ -230,14 +230,14 @@ class desordered_medium:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
-    def E_field(self, obs_pt, wavelgth):
+    def field(self, obs_pt, wavelgth):
         
         # wavenumber
         k = 2.*np.pi / wavelgth
         
         # compute input and output Green functions
         for idx, scat in enumerate(self.scat_pos):
-            self.Gin[0,idx] = self.source.radiated_field(\
+            self.Gin[0,idx] = self.source.field(\
                 scat[0], scat[1], scat[2], wavelgth)
             
             d_scat_obs = np.sqrt(np.square(self.scat_pos[idx,:] - obs_pt).sum())
@@ -254,12 +254,12 @@ class desordered_medium:
                     self.Gdd[i,j] = 0.
                 
         # compute transmission matrix or coefficient              
-        rad_field = np.matmul(np.matmul(self.Gin, \
+        self.T = np.matmul(np.matmul(self.Gin, \
                       np.linalg.solve((np.eye(self.nb_scat) - self.Gdd).T, \
                         np.diag(self.polarizability).T).T),\
                       self.Gout)
             
-        return rad_field
+        return self.T
         
             
         
