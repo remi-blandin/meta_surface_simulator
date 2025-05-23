@@ -71,7 +71,7 @@ dm = desordered_medium(scat_pos, ta)
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
-obs_pos = point(0., 0., 0.4)
-rad_field = dm.field(obs_pos, wavelgth)
+obs_pts = [point(0., 0., 0.4), point(0., 0., 0.3)]
+rad_field = dm.field(obs_pts, wavelgth)
 
 print(rad_field)

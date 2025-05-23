@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Union
+import matplotlib.pyplot as plt
 
 #----------------------------------------------------------------------------#
 
@@ -18,6 +19,64 @@ class point:
         return np.sqrt((self.x - other_point.x)**2 + \
                        (self.y - other_point.y)**2 + \
                        (self.z - other_point.z)**2)
+            
+#----------------------------------------------------------------------------#
+
+class point_grid_2d:
+    
+    """A 2d squarred grid of cartesian points"""
+    
+    def __init__(self, orientation : str, side_length,\
+                 bottom_corner= point(0., 0., 0.) \
+                 , nb_points_per_side=50):
+        
+        self.bottom_corner = bottom_corner
+        self.nb_pts = nb_points_per_side * nb_points_per_side
+        self.points = [None] * self.nb_pts
+        
+        side_coord = np.linspace(0., side_length, nb_points_per_side)
+        
+        idx = 0
+        for i in range(0, nb_points_per_side):
+            for j in range(0, nb_points_per_side):
+                if orientation == "xy":
+                    self.points[idx] = point(side_coord[i] - bottom_corner.x,\
+                                             side_coord[j] - bottom_corner.y,\
+                                             bottom_corner.z)
+                elif orientation == "xz":
+                    self.points[idx] = point(side_coord[i] - bottom_corner.x,\
+                                             bottom_corner.y,\
+                                             side_coord[j] - bottom_corner.z)
+                elif orientation == "yz":
+                    self.points[idx] = point(bottom_corner.x, \
+                                             side_coord[i] - bottom_corner.y,\
+                                             side_coord[j] - bottom_corner.z)
+                idx = idx + 1
+                
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def x(self):
+        return [point.x for point in self.points]
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def y(self):
+        return [point.y for point in self.points]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def z(self):
+        return [point.z for point in self.points]
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(self.x(), self.y(), self.z())
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
 
 #----------------------------------------------------------------------------#
 
@@ -248,18 +307,22 @@ class desordered_medium:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
-    def field(self, obs_pt, wavelgth):
+    def field(self, obs_pts, wavelgth):
         
         # wavenumber
         k = 2.*np.pi / wavelgth
+        
+        np_obs_pts = len(obs_pts)
+        self.Gout = np.empty((self.nb_scat, np_obs_pts), dtype=np.complex128)
         
         # compute input and output Green functions
         for idx, scat in enumerate(self.scat_pos):
             self.Gin[0,idx] = self.source.field(\
                 scat, wavelgth)
             
-            d_scat_obs = scat.distance_to(obs_pt)
-            self.Gout[idx] = np.exp(1j * k * d_scat_obs) / d_scat_obs
+            for idx2, obs in enumerate(obs_pts):
+                d_scat_obs = scat.distance_to(obs)
+                self.Gout[idx, idx2] = np.exp(1j * k * d_scat_obs) / d_scat_obs
                 
         # compute between scatterers coupling Green functions
         for i in range(0, self.nb_scat):
@@ -270,7 +333,7 @@ class desordered_medium:
                 else:
                     self.Gdd[i,j] = 0.
                 
-        # compute transmission matrix or coefficient              
+        # compute transmission matrix or coefficient     
         self.T = np.matmul(np.matmul(self.Gin, \
                       np.linalg.solve((np.eye(self.nb_scat) - self.Gdd).T, \
                         np.diag(self.polarizability).T).T),\

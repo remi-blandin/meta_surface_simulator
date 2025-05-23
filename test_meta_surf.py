@@ -60,41 +60,47 @@ ax3.imshow(np.real(output_sig))
 ax3.set_title("Output signal")
 
 #----------------------------------------------------------------------------#
-# compute the radiated field
+# compute the radiated field on point grids
 
-# generate a grid of points on which to compute the radiated field
 ta_width = n_cells_x * unit_cell_side_lgth
+n_points = 50
 side_length = 1*ta_width
-n_x = 50
-n_y = 50
-n_z = 50
-x_rad = np.linspace(0, side_length, n_x) - side_length/2
-y_rad = np.linspace(0, side_length, n_y) - side_length/2
-z_rad = np.linspace(0, side_length, n_y)
 
-# In the xy plane
-rad_field_yz = np.empty(n_x*n_y, dtype=np.complex128)
-idx = 0
-for z in z_rad:
-    for y in y_rad:
-        rad_pt = point(0., y, z)
-        rad_field_yz[idx] = ta.field(rad_pt, wavelgth)
-        idx = idx + 1  
-rad_field_yz = rad_field_yz.reshape(n_y, n_z)
+# # In the xy plane
+bottom_corner = point(0., side_length/2, 0.)
+g = point_grid_2d("yz", side_length, bottom_corner \
+, nb_points_per_side = n_points)
+g.plot()
+
+rad_field_yz = np.empty(n_points * n_points, dtype=np.complex128)
+for idx, pt in enumerate(g.points):
+    rad_field_yz[idx] = ta.field(pt, wavelgth)
+
+rad_field_yz = rad_field_yz.reshape(n_points, n_points)
 
 # In the xz plane
-rad_field_xz = np.empty(n_x*n_y, dtype=np.complex128)
-start_time = time.time() 
-idx = 0
-for z in z_rad:
-    for x in x_rad:
-        rad_pt = point(x, 0., z)
-        rad_field_xz[idx] = ta.field(rad_pt, wavelgth)
-        idx = idx + 1
-end_time = time.time() 
-execution_time = end_time - start_time
-print(f"Execution time: {execution_time} seconds")
-rad_field_xz = rad_field_xz.reshape(n_x, n_z)
+bottom_corner = point(side_length/2, 0., 0.)
+g = point_grid_2d("xz", side_length, bottom_corner \
+, nb_points_per_side = n_points)
+g.plot()
+
+rad_field_xz = np.empty(n_points * n_points, dtype=np.complex128)
+for idx, pt in enumerate(g.points):
+    rad_field_xz[idx] = ta.field(pt, wavelgth)
+
+rad_field_xz = rad_field_xz.reshape(n_points, n_points)
+
+# in the yz plane
+bottom_corner = point(side_length/2, side_length/2, 0.3)
+g = point_grid_2d("xy", side_length, bottom_corner \
+, nb_points_per_side = n_points)
+g.plot()
+
+rad_field_xy = np.empty(n_points * n_points, dtype=np.complex128)
+for idx, pt in enumerate(g.points):
+    rad_field_xy[idx] = ta.field(pt, wavelgth)
+
+rad_field_xy = rad_field_xy.reshape(n_points, n_points)
 
 #----------------------------------------------------------------------------#
 # plot radiated field
@@ -109,6 +115,7 @@ ax1.set_title("yz plane")
 
 ax2.imshow(np.abs(rad_field_xz), vmax=max_value)
 ax2.set_title("xz plane")
+
 cbar = fig.colorbar(im, ax=[ax1, ax2], 
                    location='right', 
                    pad=0.02, 
