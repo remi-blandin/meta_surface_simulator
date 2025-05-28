@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
 
 #----------------------------------------------------------------------------#
 
@@ -315,11 +316,24 @@ class desordered_medium:
         self.nb_scat = nb_scat
         self.scat_pos = scat_pos
         self.source = source
-        self.polarizability = np.ones(nb_scat)
+        self.polarizability = 0.1*np.ones(nb_scat)
         self.Gin = np.empty((1, nb_scat), dtype=np.complex128)
         self.Gout = np.empty((nb_scat, 1), dtype=np.complex128)
         self.Gdd = np.zeros((nb_scat, nb_scat), dtype=np.complex128)
         self.T = np.zeros(1, dtype=np.complex128)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_scatterers(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter([point.x for point in self.scat_pos],
+            [point.y for point in self.scat_pos], 
+            [point.z for point in self.scat_pos])
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show()
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -356,7 +370,9 @@ class desordered_medium:
                 
         # compute transmission matrix or coefficient     
         self.T = np.matmul(np.matmul(self.Gin, \
-                      np.linalg.solve((np.eye(self.nb_scat) - self.Gdd).T, \
+                      np.linalg.solve((np.eye(self.nb_scat) - \
+                       np.matmul(self.Gdd, np.diag(self.polarizability))\
+                       ).T, \
                         np.diag(self.polarizability).T).T),\
                       self.Gout)
             
@@ -396,32 +412,59 @@ class desordered_medium:
         scat_field = scat_field.reshape((nb_side_pts, nb_side_pts)).T
         tot_field = dir_field + scat_field
         
+        # Prevent garbage collection
+        global slider, fig
+        
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
         
         max_value = np.max([np.abs(dir_field).max(), \
                            np.abs(scat_field).max(), \
                                np.abs(tot_field).max()])
             
-        im = ax1.imshow(np.abs(dir_field), vmax=max_value, 
+        im1 = ax1.imshow(np.abs(dir_field), vmax=max_value, 
                         extent=g.bounding_box, origin='lower')
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
         ax1.set_title("Direct field")
 
-        ax2.imshow(np.abs(scat_field), vmax=max_value, \
+        im2 = ax2.imshow(np.abs(scat_field), vmax=max_value, \
                    extent=g.bounding_box, origin='lower')
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel(ylabel)
         ax2.set_title("Scattered field")
         
-        ax3.imshow(np.abs(tot_field), vmax=max_value, \
+        im3 = ax3.imshow(np.abs(tot_field), vmax=max_value, \
                    extent=g.bounding_box, origin='lower')
         ax3.set_xlabel(xlabel)
         ax3.set_ylabel(ylabel)
         ax3.set_title("Total field")
 
-        cbar = fig.colorbar(im, ax=[ax1, ax2, ax3], 
+        cbar = fig.colorbar(im1, ax=[ax1, ax2, ax3], 
                            location='right', 
                            pad=0.02, 
                            shrink=0.5)
         cbar.set_label('|E|')
+        
+        # create a slider to adjust the maximal color value 
+        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
+        slider = Slider(
+            ax=ax_slider,
+            label='Max Color Value',
+            valmin=0.,
+            valmax=max_value,
+            valinit=max_value,
+            valstep=0.05
+        )
+        
+        # Function to update vmax
+        def update(val):
+            im1.set_clim(vmin=0, vmax=slider.val)
+            im2.set_clim(vmin=0, vmax=slider.val)
+            im3.set_clim(vmin=0, vmax=slider.val)
+            cbar.update_normal(im1)
+            fig.canvas.draw_idle()
+            
+        slider.on_changed(update)
+        
+        plt.show()
+        
