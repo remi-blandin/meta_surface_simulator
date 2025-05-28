@@ -13,8 +13,8 @@ power = 1
 n_cells_x = 20
 n_cells_y = 20
 
-# phase_mask = "devided_in_half"
-phase_mask = "random"
+phase_mask = "devided_in_half"
+# phase_mask = "random"
 
 # phase_mask = "beam"
 theta_beam = 2*np.pi/3
@@ -68,23 +68,12 @@ nb_scat = 25
 random_coordinates = np.random.rand(nb_scat, 2)/4.
 scat_pos = [None] * nb_scat
 for idx in range (0, nb_scat):
-    scat_pos[idx] = point(random_coordinates[idx,0], 0., random_coordinates[idx, 1])
-# scat_pos = [point(0.1, 0., 0.1), point(0.2, 0., 0.1), point(0.1, 0., 0.2)]
+    scat_pos[idx] = point(random_coordinates[idx,0]-0.25/2, 0., random_coordinates[idx, 1])
 dm = desordered_medium(scat_pos, ta)
 
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
-obs_pts = [point(0., 0., 0.4), point(0., 0., 0.3)]
-nb_pts = 50
-g = g = point_grid_2d("xz", 0.5, point(0.15, 0., 0.), nb_pts)
-
-rad_field = dm.field(g.points, wavelgth)
-
-rad_field = rad_field.reshape((nb_pts, nb_pts))
-
-plt.figure()
-plt.imshow(np.abs(rad_field))
-plt.show()
-
-print(rad_field)
+dm.plot_field(wavelgth, plane="xz")
+dm.plot_field(wavelgth, plane="yz")
+dm.plot_field(wavelgth, plane="xy")

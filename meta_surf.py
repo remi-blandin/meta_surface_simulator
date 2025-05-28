@@ -33,24 +33,40 @@ class point_grid_2d:
         self.bottom_corner = bottom_corner
         self.nb_pts = nb_points_per_side * nb_points_per_side
         self.points = [None] * self.nb_pts
+        self.bounding_box = [None] * 4
         
         side_coord = np.linspace(0., side_length, nb_points_per_side)
         
         idx = 0
         for i in range(0, nb_points_per_side):
             for j in range(0, nb_points_per_side):
+                
                 if orientation == "xy":
                     self.points[idx] = point(side_coord[i] - bottom_corner.x,\
                                              side_coord[j] - bottom_corner.y,\
                                              bottom_corner.z)
+                    self.bounding_box = [- bottom_corner.x, \
+                                         side_length - bottom_corner.x, \
+                                         - bottom_corner.y, \
+                                         side_length - bottom_corner.y]
+                        
                 elif orientation == "xz":
                     self.points[idx] = point(side_coord[i] - bottom_corner.x,\
                                              bottom_corner.y,\
                                              side_coord[j] - bottom_corner.z)
+                    self.bounding_box = [- bottom_corner.x, \
+                                         side_length - bottom_corner.x, \
+                                         - bottom_corner.z, \
+                                         side_length - bottom_corner.z]
+                        
                 elif orientation == "yz":
                     self.points[idx] = point(bottom_corner.x, \
                                              side_coord[i] - bottom_corner.y,\
                                              side_coord[j] - bottom_corner.z)
+                    self.bounding_box = [- bottom_corner.y, \
+                                         side_length - bottom_corner.y, \
+                                         - bottom_corner.z, \
+                                         side_length - bottom_corner.z]
                 idx = idx + 1
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -312,8 +328,13 @@ class desordered_medium:
         # wavenumber
         k = 2.*np.pi / wavelgth
         
-        np_obs_pts = len(obs_pts)
-        self.Gout = np.empty((self.nb_scat, np_obs_pts), dtype=np.complex128)
+        nb_obs_pts = len(obs_pts)
+        self.Gout = np.empty((self.nb_scat, nb_obs_pts), dtype=np.complex128)
+        
+        # compute direct field
+        Gdir = np.empty((1, nb_obs_pts), dtype=np.complex128)
+        for idx, obs in enumerate(obs_pts):
+            Gdir[0,idx] = self.source.field(obs, wavelgth)
         
         # compute input and output Green functions
         for idx, scat in enumerate(self.scat_pos):
@@ -339,7 +360,68 @@ class desordered_medium:
                         np.diag(self.polarizability).T).T),\
                       self.Gout)
             
-        return self.T
+        return Gdir, self.T
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, wavelgth, plane="xz", side = -1, \
+                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   plot_grid=False):
+        
+        if side == -1:
+            side = 10 * wavelgth
+            if plane == "xz":
+                corner_pt = point(side/2., 0., 0.)
+                xlabel = "x (m)"
+                ylabel = "z (m)"
+                
+            elif plane == "yz":
+                corner_pt = point(0., side/2., 0.)
+                xlabel = "y (m)"
+                ylabel = "z (m)"
+                
+            elif plane == "xy":
+                corner_pt = point(side/2, side/2., side/2)
+                xlabel = "x (m)"
+                ylabel = "y (m)"
             
+        g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
         
+        if plot_grid:
+            g.plot()
+        
+        dir_field, scat_field = self.field(g.points, wavelgth)
+        
+        dir_field = dir_field.reshape((nb_side_pts, nb_side_pts)).T
+        scat_field = scat_field.reshape((nb_side_pts, nb_side_pts)).T
+        tot_field = dir_field + scat_field
+        
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+        
+        max_value = np.max([np.abs(dir_field).max(), \
+                           np.abs(scat_field).max(), \
+                               np.abs(tot_field).max()])
+            
+        im = ax1.imshow(np.abs(dir_field), vmax=max_value, 
+                        extent=g.bounding_box, origin='lower')
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title("Direct field")
+
+        ax2.imshow(np.abs(scat_field), vmax=max_value, \
+                   extent=g.bounding_box, origin='lower')
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel(ylabel)
+        ax2.set_title("Scattered field")
+        
+        ax3.imshow(np.abs(tot_field), vmax=max_value, \
+                   extent=g.bounding_box, origin='lower')
+        ax3.set_xlabel(xlabel)
+        ax3.set_ylabel(ylabel)
+        ax3.set_title("Total field")
+
+        cbar = fig.colorbar(im, ax=[ax1, ax2, ax3], 
+                           location='right', 
+                           pad=0.02, 
+                           shrink=0.5)
+        cbar.set_label('|E|')
