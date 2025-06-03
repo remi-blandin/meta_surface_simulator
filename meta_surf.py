@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
+import csv
 
 #----------------------------------------------------------------------------#
 
@@ -311,17 +312,79 @@ sourceType = Union[transmit_array, simplified_horn_source]
 class desordered_medium:
     """A simple disordered model"""
     
-    def __init__(self, scat_pos: list[point], source: sourceType):
-        nb_scat = len(scat_pos)
-        self.nb_scat = nb_scat
+    def __init__(self, source: sourceType, scat_pos=None):
+        
+        if scat_pos == None:
+            nb_scat = 25
+        else:
+            nb_scat = len(scat_pos)
+            
+        self.initialize(nb_scat)
         self.scat_pos = scat_pos
         self.source = source
-        self.polarizability = 0.1*np.ones(nb_scat)
+        self.T = np.zeros(1, dtype=np.complex128)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def initialize(self, nb_scat):
+        self.nb_scat = nb_scat
+        self.polarizability = 1j*np.ones(nb_scat)
         self.Gin = np.empty((1, nb_scat), dtype=np.complex128)
         self.Gout = np.empty((nb_scat, 1), dtype=np.complex128)
         self.Gdd = np.zeros((nb_scat, nb_scat), dtype=np.complex128)
-        self.T = np.zeros(1, dtype=np.complex128)
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def generate_random_scatterers(self, nb_scat=None, 
+            bounding_box = [-0.2, 0.2, -0.2, 0.2, 0.05, 0.25]):
+        
+        if nb_scat == None:
+            nb_scat = self.nb_scat
+        else:
+            self.initialize(nb_scat)
+            
+        self.scat_pos = [None] * nb_scat
+        
+        delta_x = bounding_box[1] - bounding_box[0]
+        delta_y = bounding_box[3] - bounding_box[2]
+        delta_z = bounding_box[5] - bounding_box[4]
+        random_coordinates = np.random.rand(nb_scat, 3)
+        
+        for idx in range(nb_scat):
+            self.scat_pos[idx] = point(
+                random_coordinates[idx, 0] * delta_x + bounding_box[0],
+                random_coordinates[idx, 1] * delta_y + bounding_box[2],
+                random_coordinates[idx, 2] * delta_z + bounding_box[4],
+                )
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def save_scat_pos(self, file_name = "scatterers_position.csv"):
+        
+        with open(file_name, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            
+            for scat in self.scat_pos:
+                writer.writerow([scat.x, scat.y, scat.z])    
+                
+        print(f"Scatterers coordinates saved to {file_name}")
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def create_scat_from_csv(self, file_name):
+        
+        scat_pos = []
+        
+        with open(file_name, mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                scat_pos.append(
+                    point(float(row[0]), float(row[1]), float(row[2]))
+                    )
+        self.scat_pos = scat_pos
+        nb_scat = len(scat_pos)
+        self.initialize(nb_scat)
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot_scatterers(self):
@@ -453,7 +516,7 @@ class desordered_medium:
             valmin=0.,
             valmax=max_value,
             valinit=max_value,
-            valstep=0.05
+            valstep=0.01
         )
         
         # Function to update vmax

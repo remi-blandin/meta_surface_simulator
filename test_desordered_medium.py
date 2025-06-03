@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 from meta_surf import *
 
@@ -13,14 +14,14 @@ power = 1
 n_cells_x = 20
 n_cells_y = 20
 
-# phase_mask = "devided_in_half"
+phase_mask = "devided_in_half"
 # phase_mask = "random"
 
 # phase_mask = "beam"
 theta_beam = 2*np.pi/3
 phi_beam = 0
 
-phase_mask = "focal_point"
+# phase_mask = "focal_point"
 focal_point = point(0., 0., 0.3)
 
 quant = False
@@ -63,21 +64,21 @@ ax3.set_title("Output signal")
 
 #----------------------------------------------------------------------------#
 # Create desordered medium
-
-nb_scat = 50
-random_coordinates = np.random.rand(nb_scat, 3)/4.
-scat_pos = [None] * nb_scat
-for idx in range (0, nb_scat):
-    scat_pos[idx] = point(random_coordinates[idx,0]-0.25/2,
-                          random_coordinates[idx, 1]-0.25/2, 
-                          random_coordinates[idx, 2] + 0.05)
     
-dm = desordered_medium(scat_pos, ta)
-dm.plot_scatterers()
+dm = desordered_medium(ta)
+
+file_name = "scatterers_position.csv"
+if os.path.exists(file_name):
+    dm.create_scat_from_csv(file_name)
+else:
+    dm.generate_random_scatterers(5)
+    dm.save_scat_pos(file_name)
+
+# dm.plot_scatterers()
 
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
-dm.plot_field(wavelgth, plane="xz")
-dm.plot_field(wavelgth, plane="yz")
-dm.plot_field(wavelgth, plane="xy")
+dm.plot_field(wavelgth, plane="xz", nb_side_pts=100)
+# dm.plot_field(wavelgth, plane="yz")
+# dm.plot_field(wavelgth, plane="xy")
