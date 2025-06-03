@@ -328,7 +328,7 @@ class desordered_medium:
 
     def initialize(self, nb_scat):
         self.nb_scat = nb_scat
-        self.polarizability = 1j*np.ones(nb_scat)
+        self.polarizability = 1.*np.ones(nb_scat)
         self.Gin = np.empty((1, nb_scat), dtype=np.complex128)
         self.Gout = np.empty((nb_scat, 1), dtype=np.complex128)
         self.Gdd = np.zeros((nb_scat, nb_scat), dtype=np.complex128)
@@ -404,6 +404,7 @@ class desordered_medium:
         
         # wavenumber
         k = 2.*np.pi / wavelgth
+        four_pi = 4.*np.pi
         
         nb_obs_pts = len(obs_pts)
         self.Gout = np.empty((self.nb_scat, nb_obs_pts), dtype=np.complex128)
@@ -420,14 +421,15 @@ class desordered_medium:
             
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
-                self.Gout[idx, idx2] = np.exp(1j * k * d_scat_obs) / d_scat_obs
+                self.Gout[idx, idx2] = np.exp(1j * k * d_scat_obs) \
+                / d_scat_obs / four_pi
                 
         # compute between scatterers coupling Green functions
         for i in range(0, self.nb_scat):
             for j in range(0, self.nb_scat):
                 if i != j:
                     d_scat = self.scat_pos[i].distance_to(self.scat_pos[j])
-                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat
+                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat / four_pi
                 else:
                     self.Gdd[i,j] = 0.
                 

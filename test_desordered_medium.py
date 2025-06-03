@@ -26,8 +26,6 @@ focal_point = point(0., 0., 0.3)
 
 quant = False
 
-nb_scat = 3
-
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
 
