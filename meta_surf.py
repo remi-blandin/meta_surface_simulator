@@ -404,7 +404,7 @@ class desordered_medium:
         
         # wavenumber
         k = 2.*np.pi / wavelgth
-        four_pi = 4.*np.pi
+        two_sqrt_pi = 2.*np.sqrt(np.pi)
         
         nb_obs_pts = len(obs_pts)
         self.Gout = np.empty((self.nb_scat, nb_obs_pts), dtype=np.complex128)
@@ -422,14 +422,15 @@ class desordered_medium:
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
                 self.Gout[idx, idx2] = np.exp(1j * k * d_scat_obs) \
-                / d_scat_obs / four_pi
+                / d_scat_obs / two_sqrt_pi
                 
         # compute between scatterers coupling Green functions
         for i in range(0, self.nb_scat):
             for j in range(0, self.nb_scat):
                 if i != j:
                     d_scat = self.scat_pos[i].distance_to(self.scat_pos[j])
-                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat / four_pi
+                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat \
+                        / two_sqrt_pi
                 else:
                     self.Gdd[i,j] = 0.
                 
