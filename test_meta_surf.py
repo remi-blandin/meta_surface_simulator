@@ -39,13 +39,13 @@ if phase_mask == "random":
 elif phase_mask == "devided_in_half":
     ta.set_phase_mask_devided_in_half()
 elif phase_mask == "beam":
-    ta.set_phase_mask_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
+    ta.set_phase_mask_beam(theta_beam, phi_beam, quantize=quant)
 elif phase_mask == "focal_point":
-    ta.set_phase_mask_focal_point(focal_point, wavelgth, quantize=quant)
+    ta.set_phase_mask_focal_point(focal_point, quantize=quant)
     
 # compute input and output signals
-input_signals = ta.inout_signals(wavelgth, power)
-output_sig = ta.output_signals(wavelgth, power)
+input_signals = ta.input_signals()
+output_sig = ta.output_signals()
 
 # plot phase mask, input and ouput signals
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
@@ -74,7 +74,7 @@ g.plot()
 
 rad_field_yz = np.empty(n_points * n_points, dtype=np.complex128)
 for idx, pt in enumerate(g.points):
-    rad_field_yz[idx] = ta.field(pt, wavelgth)
+    rad_field_yz[idx] = ta.field(pt)
 
 rad_field_yz = rad_field_yz.reshape(n_points, n_points)
 
@@ -86,7 +86,7 @@ g.plot()
 
 rad_field_xz = np.empty(n_points * n_points, dtype=np.complex128)
 for idx, pt in enumerate(g.points):
-    rad_field_xz[idx] = ta.field(pt, wavelgth)
+    rad_field_xz[idx] = ta.field(pt)
 
 rad_field_xz = rad_field_xz.reshape(n_points, n_points)
 
@@ -98,7 +98,7 @@ g.plot()
 
 rad_field_xy = np.empty(n_points * n_points, dtype=np.complex128)
 for idx, pt in enumerate(g.points):
-    rad_field_xy[idx] = ta.field(pt, wavelgth)
+    rad_field_xy[idx] = ta.field(pt)
 
 rad_field_xy = rad_field_xy.reshape(n_points, n_points)
 

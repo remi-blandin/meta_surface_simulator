@@ -8,9 +8,7 @@ from meta_surf import *
 # parameters
 
 unit_cell_side_lgth = 0.03
-dist_src = 10
-wavelgth = 0.06
-power = 1
+dist_src = 10.
 n_cells_x = 20
 n_cells_y = 20
 
@@ -40,13 +38,13 @@ if phase_mask == "random":
 elif phase_mask == "devided_in_half":
     ta.set_phase_mask_devided_in_half()
 elif phase_mask == "beam":
-    ta.set_phase_mask_beam(theta_beam, phi_beam, wavelgth, quantize=quant)
+    ta.set_phase_mask_beam(theta_beam, phi_beam, quantize=quant)
 elif phase_mask == "focal_point":
-    ta.set_phase_mask_focal_point(focal_point, wavelgth, quantize=quant)
+    ta.set_phase_mask_focal_point(focal_point, quantize=quant)
     
 # compute input and output signals
-input_signals = ta.inout_signals(wavelgth, power)
-output_sig = ta.output_signals(wavelgth, power)
+input_signals = ta.input_signals()
+output_sig = ta.output_signals()
 
 # plot phase mask, input and ouput signals
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
@@ -77,6 +75,6 @@ dm.plot_scatterers()
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
-dm.plot_field(wavelgth, plane="xz", nb_side_pts=100)
-dm.plot_field(wavelgth, plane="yz")
-dm.plot_field(wavelgth, plane="xy")
+dm.plot_field(plane="xz", nb_side_pts=100)
+dm.plot_field(plane="yz")
+dm.plot_field(plane="xy")

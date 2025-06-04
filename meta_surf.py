@@ -101,33 +101,34 @@ class point_grid_2d:
 class simple_unit_cell:
     """A simple model for a unit cell"""
     
-    def __init__(self, side_length):
+    def __init__(self, side_length=0.03, wavelgth=0.06):
         self.side_length = side_length
         self.area = np.square(side_length)
+        self.wavelgth = wavelgth
         
-    def directivity(self, theta, phi, wavelgth):
+    def directivity(self, theta, phi):
         return 4.*np.pi * self.area * np.square(np.cos(theta)) \
-    / np.square(wavelgth)
+    / np.square(self.wavelgth)
     
-    def input_sig(self, incoming_wave, theta, phi, wavelgth):
-        return incoming_wave * self.directivity(theta, phi, wavelgth)
+    def input_sig(self, incoming_wave, theta, phi):
+        return incoming_wave * self.directivity(theta, phi)
     
-    def output_sig(self, incoming_wave, theta, phi, wavelgth, phase_shift):
-        return self.input_sig(incoming_wave, theta, phi, wavelgth) * \
+    def output_sig(self, incoming_wave, theta, phi, phase_shift):
+        return self.input_sig(incoming_wave, theta, phi) * \
             np.exp(-1j * phase_shift)
             
-    def field(self, incoming_wave, theta, phi, wavelgth, phase_shift, \
+    def field(self, incoming_wave, theta, phi, phase_shift, \
                        dist, theta_out, phi_out):
-        return self.output_sig(incoming_wave, theta, phi, wavelgth, phase_shift) \
-            * self.directivity(theta_out, phi_out, wavelgth) \
-                * wavelgth * np.exp(-1j * 2. * np.pi * dist / wavelgth) \
+        return self.output_sig(incoming_wave, theta, phi, phase_shift) \
+            * self.directivity(theta_out, phi_out) \
+                * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
                     
-    def field_from_sig(self, output_sig, wavelgth, dist,\
+    def field_from_sig(self, output_sig, dist,\
                                 theta_out, phi_out):
         return output_sig \
-            * self.directivity(theta_out, phi_out, wavelgth) \
-                * wavelgth * np.exp(-1j * 2. * np.pi * dist / wavelgth) \
+            * self.directivity(theta_out, phi_out) \
+                * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
     
 #----------------------------------------------------------------------------#
@@ -135,16 +136,17 @@ class simple_unit_cell:
 class simplified_horn_source:
     """A simple model for a horn source"""
     
-    def __init__(self, order=5):
+    def __init__(self, order=5, wavelgth=0.06):
         self.order = order
+        self.wavelgth = wavelgth
         
-    def directivity(self, theta, phi, wavelgth):
+    def directivity(self, theta, phi):
         return 2.*(self.order + 1) * np.pow(np.cos(theta), self.order)
     
-    def field(self, theta, phi, wavelgth, power, dist):
-        return np.sqrt(power) * wavelgth * \
-            np.exp(-1j * 2. * np.pi * dist /wavelgth) * \
-                self.directivity(theta, phi, wavelgth) / 4. / np.pi / dist
+    def field(self, theta, phi, power, dist):
+        return np.sqrt(power) * self.wavelgth * \
+            np.exp(-1j * 2. * np.pi * dist /self.wavelgth) * \
+                self.directivity(theta, phi) / 4. / np.pi / dist
                 
 #----------------------------------------------------------------------------#
 
@@ -152,7 +154,9 @@ class transmit_array:
     """A simple transmit array model"""
     
     def __init__(self, n_cell_x, n_cell_y, unit_cell : 'simple_unit_cell', \
-                 source: 'simplified_horn_source', dist_src):
+                 source: 'simplified_horn_source', dist_src=0.5, \
+                 wavelgth=0.06):
+        
         self.n_cell_x = n_cell_x
         self.n_cell_y = n_cell_y
         self.nb_cell = n_cell_x * n_cell_y
@@ -160,8 +164,10 @@ class transmit_array:
         self.phase_mask = np.zeros(self.nb_cell)
         self.source = source
         self.dist_src = dist_src
+        self.wavelgth = wavelgth
         self.input_sig = np.zeros(self.nb_cell, dtype=np.complex128)
         self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
+
         
         # generate the coordinates of the centers of the cells
         x_min = -self.unit_cell.side_length * (self.n_cell_x - 1)/2. 
@@ -181,16 +187,27 @@ class transmit_array:
                 self.x_ordered[idx] = x
                 self.y_ordered[idx] = y
                 idx = idx + 1
+                
+        self.input_signals()
+        self.output_signals()
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_phase_mask(self, value):
         self.phase_mask.fill(value)
         
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
+        
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_random_phase_mask(self):
         self.phase_mask = np.pi * np.random.randint(0, 2, self.nb_cell)
+        
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -202,33 +219,44 @@ class transmit_array:
                     self.phase_mask[idx] = np.pi
                 idx = idx + 1
                 
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
+                
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_phase_mask_beam(self, theta_beam, phi_beam, wavelgth, \
+    def set_phase_mask_beam(self, theta_beam, phi_beam, \
                              quantize=True ):
         for idx in range(0, self.nb_cell):
             self.phase_mask[idx] = \
             -2.* np.pi * np.sin(theta_beam) * ( \
             np.cos(phi_beam) * self.x_ordered[idx] \
             + np.sin(phi_beam) * self.y_ordered[idx] \
-                ) / wavelgth 
+                ) / self.wavelgth 
             if quantize:
                 self.phase_mask[idx]  = \
                     round((self.phase_mask[idx] % np.pi) / np.pi) * np.pi
                     
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
+                    
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_phase_mask_focal_point(self, focal_point, \
-                                    wavelgth, quantize=True):
+    def set_phase_mask_focal_point(self, focal_point, quantize=True):
         for idx in range(0, self.nb_cell):
             self.phase_mask[idx] = \
                 (-2. * np.pi * (np.sqrt(np.square(focal_point.z) + \
              np.square(self.x_ordered[idx] - focal_point.x) + \
              np.square(self.y_ordered[idx] - focal_point.y)) \
-                    - focal_point.z) / wavelgth)  % (2. * np.pi)
+                    - focal_point.z) / self.wavelgth)  % (2. * np.pi)
             if quantize:
                 self.phase_mask[idx]  = \
                     round(((self.phase_mask[idx]) % np.pi) / np.pi) * np.pi
+                    
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -254,12 +282,12 @@ class transmit_array:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def inout_signals(self, wavelgth, power):
+    def input_signals(self, power=1.):
         
         ds, theta_in, phi_in = self.input_coords()
 
         input_signals = self.source.field(
-            theta_in, phi_in, wavelgth, power, ds
+            theta_in, phi_in, power, ds
             )
         
         self.input_sig = input_signals
@@ -271,12 +299,12 @@ class transmit_array:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
-    def output_signals(self, wavelgth, power):
+    def output_signals(self, power=1.):
             
         ds, theta_in, phi_in = self.input_coords()
         
         output_sig = self.unit_cell.output_sig(
-            self.input_sig, theta_in, phi_in, wavelgth, 
+            self.input_sig, theta_in, phi_in, 
             self.phase_mask)
                 
         self.output_sig = output_sig
@@ -287,7 +315,7 @@ class transmit_array:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def field(self, point, wavelgth):
+    def field(self, point):
                 
         dp = np.sqrt(np.square(self.x_ordered - point.x) + \
                      np.square(self.y_ordered - point.y) +\
@@ -298,7 +326,7 @@ class transmit_array:
                        + np.square(point.y - self.y_ordered)))
                     
         rad_field = self.unit_cell.field_from_sig(
-                self.output_sig, wavelgth, dp,
+                self.output_sig, dp,
                 theta_out, phi_out)
         
         rad_field = rad_field.sum()
@@ -312,7 +340,7 @@ sourceType = Union[transmit_array, simplified_horn_source]
 class desordered_medium:
     """A simple disordered model"""
     
-    def __init__(self, source: sourceType, scat_pos=None):
+    def __init__(self, source: sourceType, scat_pos=None, wavelgth=0.06):
         
         if scat_pos == None:
             nb_scat = 25
@@ -320,6 +348,7 @@ class desordered_medium:
             nb_scat = len(scat_pos)
             
         self.initialize(nb_scat)
+        self.wavelgth = wavelgth
         self.scat_pos = scat_pos
         self.source = source
         self.T = np.zeros(1, dtype=np.complex128)
@@ -400,10 +429,10 @@ class desordered_medium:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
-    def field(self, obs_pts, wavelgth):
+    def field(self, obs_pts):
         
         # wavenumber
-        k = 2.*np.pi / wavelgth
+        k = 2.*np.pi / self.wavelgth
         two_sqrt_pi = 2.*np.sqrt(np.pi)
         
         nb_obs_pts = len(obs_pts)
@@ -412,16 +441,15 @@ class desordered_medium:
         # compute direct field
         Gdir = np.empty((1, nb_obs_pts), dtype=np.complex128)
         for idx, obs in enumerate(obs_pts):
-            Gdir[0,idx] = self.source.field(obs, wavelgth)
+            Gdir[0,idx] = self.source.field(obs)
         
         # compute input and output Green functions
         for idx, scat in enumerate(self.scat_pos):
-            self.Gin[0,idx] = self.source.field(\
-                scat, wavelgth)
+            self.Gin[0,idx] = self.source.field(scat)
             
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
-                self.Gout[idx, idx2] = wavelgth * np.exp(1j * k * d_scat_obs) \
+                self.Gout[idx, idx2] = self.wavelgth * np.exp(1j * k * d_scat_obs) \
                 / d_scat_obs / two_sqrt_pi
                 
         # compute between scatterers coupling Green functions
@@ -429,7 +457,7 @@ class desordered_medium:
             for j in range(0, self.nb_scat):
                 if i != j:
                     d_scat = self.scat_pos[i].distance_to(self.scat_pos[j])
-                    self.Gdd[i,j] = wavelgth * np.exp(1j * k * d_scat) / d_scat \
+                    self.Gdd[i,j] = self.wavelgth * np.exp(1j * k * d_scat) / d_scat \
                         / two_sqrt_pi
                 else:
                     self.Gdd[i,j] = 0.
@@ -446,12 +474,12 @@ class desordered_medium:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, wavelgth, plane="xz", side = -1, \
+    def plot_field(self, plane="xz", side = -1, \
                    corner_pt = point(0.,0.,.0), nb_side_pts=50,
                    plot_grid=False):
         
         if side == -1:
-            side = 10 * wavelgth
+            side = 10 * self.wavelgth
             if plane == "xz":
                 corner_pt = point(side/2., 0., 0.)
                 xlabel = "x (m)"
@@ -472,7 +500,7 @@ class desordered_medium:
         if plot_grid:
             g.plot()
         
-        dir_field, scat_field = self.field(g.points, wavelgth)
+        dir_field, scat_field = self.field(g.points)
         
         dir_field = dir_field.reshape((nb_side_pts, nb_side_pts)).T
         scat_field = scat_field.reshape((nb_side_pts, nb_side_pts)).T
