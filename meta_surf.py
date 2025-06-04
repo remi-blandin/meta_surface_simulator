@@ -483,6 +483,8 @@ class desordered_medium:
         
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
         
+        fig.suptitle("Plane " + plane)
+        
         max_value = np.max([np.abs(dir_field).max(), \
                            np.abs(scat_field).max(), \
                                np.abs(tot_field).max()])

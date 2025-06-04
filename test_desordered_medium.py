@@ -69,14 +69,14 @@ file_name = "scatterers_position.csv"
 if os.path.exists(file_name):
     dm.create_scat_from_csv(file_name)
 else:
-    dm.generate_random_scatterers(5)
+    dm.generate_random_scatterers(50)
     dm.save_scat_pos(file_name)
 
-# dm.plot_scatterers()
+dm.plot_scatterers()
 
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
 dm.plot_field(wavelgth, plane="xz", nb_side_pts=100)
-# dm.plot_field(wavelgth, plane="yz")
-# dm.plot_field(wavelgth, plane="xy")
+dm.plot_field(wavelgth, plane="yz")
+dm.plot_field(wavelgth, plane="xy")
