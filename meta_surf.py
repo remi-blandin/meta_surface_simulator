@@ -135,7 +135,7 @@ class simple_unit_cell:
 class simplified_horn_source:
     """A simple model for a horn source"""
     
-    def __init__(self, order):
+    def __init__(self, order=5):
         self.order = order
         
     def directivity(self, theta, phi, wavelgth):
@@ -421,7 +421,7 @@ class desordered_medium:
             
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
-                self.Gout[idx, idx2] = np.exp(1j * k * d_scat_obs) \
+                self.Gout[idx, idx2] = wavelgth * np.exp(1j * k * d_scat_obs) \
                 / d_scat_obs / two_sqrt_pi
                 
         # compute between scatterers coupling Green functions
@@ -429,7 +429,7 @@ class desordered_medium:
             for j in range(0, self.nb_scat):
                 if i != j:
                     d_scat = self.scat_pos[i].distance_to(self.scat_pos[j])
-                    self.Gdd[i,j] = np.exp(1j * k * d_scat) / d_scat \
+                    self.Gdd[i,j] = wavelgth * np.exp(1j * k * d_scat) / d_scat \
                         / two_sqrt_pi
                 else:
                     self.Gdd[i,j] = 0.
