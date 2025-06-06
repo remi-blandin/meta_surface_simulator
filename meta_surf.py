@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 import csv
 
+__all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
+           "simplified_horn_source", "transmit_array", "desordered_medium"]
+
 #----------------------------------------------------------------------------#
 
 class point:
@@ -95,6 +98,64 @@ class point_grid_2d:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         plt.show()
+        
+#----------------------------------------------------------------------------#
+
+class radiation_pattern:
+    
+    """A pattern defined over 2 angular spherical coordinates"""
+    
+    def __init__(self, csv_file):
+        self.phi = []
+        self.theta = []
+        self.rad_pat = np.array()
+        
+        self.load_pattern_from_csv(csv_file)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def load_pattern_from_csv(self, csv_file):
+        self.phi = []
+        all_phis_picked = False
+        self.theta = []
+        all_theta_picked = False
+        dir_pat = []
+        
+        with open(csv_file, mode='r') as file:
+            reader = csv.reader(file)
+            
+            # skip header
+            next(reader) 
+            
+            # extract first row
+            row = next(reader)
+            self.phi.append(float(row[0]))
+            self.theta.append(float(row[1]))
+            dir_pat.append(float(row[2]))
+            
+            for row in reader:
+                
+                # extract phi coordinate
+                p = float(row[0])
+                if p < self.phi[-1]:
+                    all_phis_picked = True
+                if not(all_phis_picked) and p != self.phi[-1]:
+                    self.phi.append(p)
+                
+                # extract theta coordinate
+                t = float(row[1])
+                if t < self.theta[-1]:
+                    all_theta_picked = True
+                if not(all_theta_picked) and t != self.theta[-1]:
+                    self.theta.append(t)
+                
+                dir_pat.append(float(row[2]))
+        
+        n_phi = len(self.phi)
+        n_theta = len(self.theta)
+        dir_pat = np.array(dir_pat)
+        self.rad_pat = dir_pat.reshape((n_theta, n_phi))
+        
 
 #----------------------------------------------------------------------------#
 
@@ -106,16 +167,24 @@ class simple_unit_cell:
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
     def directivity(self, theta, phi):
         return 4.*np.pi * self.area * np.square(np.cos(theta)) \
     / np.square(self.wavelgth)
     
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
     def input_sig(self, incoming_wave, theta, phi):
         return incoming_wave * self.directivity(theta, phi)
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def output_sig(self, incoming_wave, theta, phi, phase_shift):
         return self.input_sig(incoming_wave, theta, phi) * \
             np.exp(-1j * phase_shift)
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
             
     def field(self, incoming_wave, theta, phi, phase_shift, \
                        dist, theta_out, phi_out):
@@ -124,6 +193,8 @@ class simple_unit_cell:
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
                     
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+                    
     def field_from_sig(self, output_sig, dist,\
                                 theta_out, phi_out):
         return output_sig \
@@ -131,6 +202,64 @@ class simple_unit_cell:
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
     
+#----------------------------------------------------------------------------#
+
+class unit_cell:
+    """A unit cell whose characteristics are defined from simulations"""
+    
+    def __init__(self, side_length=0.03, wavelgth=0.06):
+        self.side_length = side_length
+        self.area = np.square(side_length)
+        self.wavelgth = wavelgth
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_input_dirpat(self, csv_file, phase_state=0.):
+        
+        phi = []
+        all_phis_picked = False
+        theta = []
+        all_theta_picked = False
+        dir_pat = []
+        
+        with open(csv_file, mode='r') as file:
+            reader = csv.reader(file)
+            
+            # skip header
+            next(reader) 
+            
+            # extract first row
+            row = next(reader)
+            phi.append(float(row[0]))
+            theta.append(float(row[1]))
+            dir_pat.append(float(row[2]))
+            
+            for row in reader:
+                
+                # extract phi coordinate
+                p = float(row[0])
+                if p < phi[-1]:
+                    all_phis_picked = True
+                if not(all_phis_picked) and p != phi[-1]:
+                    phi.append(p)
+                
+                # extract theta coordinate
+                t = float(row[1])
+                if t < theta[-1]:
+                    all_theta_picked = True
+                if not(all_theta_picked) and t != theta[-1]:
+                    theta.append(t)
+                
+                dir_pat.append(float(row[2]))
+        
+        n_phi = len(phi)
+        n_theta = len(theta)
+        dir_pat = np.array(dir_pat)
+        dir_pat = dir_pat.reshape((n_theta, n_phi))
+                
+        return phi, theta, dir_pat
+        
+
 #----------------------------------------------------------------------------#
     
 class simplified_horn_source:

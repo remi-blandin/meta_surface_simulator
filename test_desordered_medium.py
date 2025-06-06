@@ -22,7 +22,8 @@ phi_beam = 0
 phase_mask = "focal_point"
 focal_point = point(0., 0., 0.3)
 
-quant = False
+quant = True
+
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
