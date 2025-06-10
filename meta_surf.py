@@ -1,6 +1,8 @@
 import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
 from scipy.interpolate import RegularGridInterpolator
@@ -201,6 +203,26 @@ class radiation_pattern:
         
         interp_val = interp(np.array([theta, phi]).T)
         
+        # --- Draw spheres at interpolated points ---
+        def add_sphere(ax, x, y, z, radius=0.05, color='red'):
+            """Add a 3D sphere to the axis."""
+            # Generate sphere vertices
+            u = np.linspace(0, 2 * np.pi, 10)
+            v = np.linspace(0, np.pi, 10)
+
+            x_sphere = x + radius * np.outer(np.cos(u), np.sin(v)).ravel()
+            y_sphere = y + radius * np.outer(np.sin(u), np.sin(v)).ravel()
+            z_sphere = z + radius * np.outer(np.ones(np.size(u)), np.cos(v)).ravel()
+            
+            # Combine into (N, 3) array
+            verts = np.column_stack([x_sphere, y_sphere, z_sphere])
+            verts = verts.reshape(-1, 3)
+            
+            sphere = Poly3DCollection([verts], alpha=1.0, linewidths=0.5, 
+                                      edgecolors='black', facecolors=color)
+            
+            ax.add_collection3d(sphere)
+        
         if plot:
             fig, ax = self.plot()
             
@@ -209,25 +231,10 @@ class radiation_pattern:
             y = interp_val * np.sin(theta) * np.sin(phi)
             z = interp_val * np.cos(theta)
             
-            ax.scatter(x, y, z, 
-                       s=100, 
-                       c='red',
-                       # edgecolors='black',
-                       # linewidths=1.5,
-                       depthshade=False,
-                       # label='Interpolated Points'
-                       )
-            ax.scatter(x, y, z, 
-                       s=200,
-                       c='red', 
-                       alpha=0.2, 
-                       depthshade=False
-                       )
-            
-            
+            for xi, yi, zi in zip(x, y, z):
+                add_sphere(ax, xi, yi, zi, radius=0.1, color='red')
         
         return interp_val
-        
 
 #----------------------------------------------------------------------------#
 
