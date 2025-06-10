@@ -3,9 +3,11 @@ from typing import Union
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 import csv
+from scipy.interpolate import RegularGridInterpolator
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
-           "simplified_horn_source", "transmit_array", "desordered_medium"]
+           "simplified_horn_source", "transmit_array", "desordered_medium",
+           "radiation_pattern"]
 
 #----------------------------------------------------------------------------#
 
@@ -106,9 +108,9 @@ class radiation_pattern:
     """A pattern defined over 2 angular spherical coordinates"""
     
     def __init__(self, csv_file):
-        self.phi = []
-        self.theta = []
-        self.rad_pat = np.array()
+        # self.phi = []
+        # self.theta = []
+        # self.rad_pat = np.array()
         
         self.load_pattern_from_csv(csv_file)
         
@@ -150,11 +152,81 @@ class radiation_pattern:
                     self.theta.append(t)
                 
                 dir_pat.append(float(row[2]))
+                
+        self.n_phi = len(self.phi)
+        self.n_theta = len(self.theta)
         
-        n_phi = len(self.phi)
-        n_theta = len(self.theta)
+        # convert to radians
+        self.phi = np.array(self.phi) * np.pi / 180.
+        self.theta = np.array(self.theta) * np.pi / 180.
+
         dir_pat = np.array(dir_pat)
-        self.rad_pat = dir_pat.reshape((n_theta, n_phi))
+        self.rad_pat = dir_pat.reshape((self.n_theta, self.n_phi))
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot(self):
+        phi, theta = np.meshgrid(self.phi, self.theta)
+        
+        # convert to radian
+        phi = phi
+        theta = theta
+        
+        # convert to cartesian coordinates
+        x = self.rad_pat * np.sin(theta) * np.cos(phi)
+        y = self.rad_pat * np.sin(theta) * np.sin(phi)
+        z = self.rad_pat * np.cos(theta)
+        
+        max_val = self.rad_pat.max()
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(x, y, z, 
+                        facecolors=plt.cm.viridis(self.rad_pat / max_val)
+                        )
+        ax.set_box_aspect([1, 1, 1])
+        
+        return fig, ax
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def value(self, theta, phi, plot=False):
+        
+        # Create interpolator
+        interp = RegularGridInterpolator(
+            (self.theta, self.phi),  # Grid points
+            self.rad_pat,                  # Grid values
+            method='linear'          # 'linear', 'nearest', 'slinear', 'cubic'
+        )
+        
+        interp_val = interp(np.array([theta, phi]).T)
+        
+        if plot:
+            fig, ax = self.plot()
+            
+            # convert to cartesian coordinates
+            x = interp_val * np.sin(theta) * np.cos(phi)
+            y = interp_val * np.sin(theta) * np.sin(phi)
+            z = interp_val * np.cos(theta)
+            
+            ax.scatter(x, y, z, 
+                       s=100, 
+                       c='red',
+                       # edgecolors='black',
+                       # linewidths=1.5,
+                       depthshade=False,
+                       # label='Interpolated Points'
+                       )
+            ax.scatter(x, y, z, 
+                       s=200,
+                       c='red', 
+                       alpha=0.2, 
+                       depthshade=False
+                       )
+            
+            
+        
+        return interp_val
         
 
 #----------------------------------------------------------------------------#
@@ -211,53 +283,62 @@ class unit_cell:
         self.side_length = side_length
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
+        self.rad_pats = []
+        self.phase_states = []
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_input_dirpat(self, csv_file, phase_state=0.):
+    def set_dirpat(self, csv_file_input_rad_pat, csv_file_output_rad_pat, 
+                   phase_state=0.):
         
-        phi = []
-        all_phis_picked = False
-        theta = []
-        all_theta_picked = False
-        dir_pat = []
+        input_rad_pat = radiation_pattern(csv_file_input_rad_pat)
+        output_rad_pat = radiation_pattern(csv_file_output_rad_pat)
         
-        with open(csv_file, mode='r') as file:
-            reader = csv.reader(file)
-            
-            # skip header
-            next(reader) 
-            
-            # extract first row
-            row = next(reader)
-            phi.append(float(row[0]))
-            theta.append(float(row[1]))
-            dir_pat.append(float(row[2]))
-            
-            for row in reader:
-                
-                # extract phi coordinate
-                p = float(row[0])
-                if p < phi[-1]:
-                    all_phis_picked = True
-                if not(all_phis_picked) and p != phi[-1]:
-                    phi.append(p)
-                
-                # extract theta coordinate
-                t = float(row[1])
-                if t < theta[-1]:
-                    all_theta_picked = True
-                if not(all_theta_picked) and t != theta[-1]:
-                    theta.append(t)
-                
-                dir_pat.append(float(row[2]))
+        self.rad_pats.append((input_rad_pat, output_rad_pat))
+        self.phase_states.append(phase_state)
         
-        n_phi = len(phi)
-        n_theta = len(theta)
-        dir_pat = np.array(dir_pat)
-        dir_pat = dir_pat.reshape((n_theta, n_phi))
+        # phi = []
+        # all_phis_picked = False
+        # theta = []
+        # all_theta_picked = False
+        # dir_pat = []
+        
+        # with open(csv_file, mode='r') as file:
+        #     reader = csv.reader(file)
+            
+        #     # skip header
+        #     next(reader) 
+            
+        #     # extract first row
+        #     row = next(reader)
+        #     phi.append(float(row[0]))
+        #     theta.append(float(row[1]))
+        #     dir_pat.append(float(row[2]))
+            
+        #     for row in reader:
                 
-        return phi, theta, dir_pat
+        #         # extract phi coordinate
+        #         p = float(row[0])
+        #         if p < phi[-1]:
+        #             all_phis_picked = True
+        #         if not(all_phis_picked) and p != phi[-1]:
+        #             phi.append(p)
+                
+        #         # extract theta coordinate
+        #         t = float(row[1])
+        #         if t < theta[-1]:
+        #             all_theta_picked = True
+        #         if not(all_theta_picked) and t != theta[-1]:
+        #             theta.append(t)
+                
+        #         dir_pat.append(float(row[2]))
+        
+        # n_phi = len(phi)
+        # n_theta = len(theta)
+        # dir_pat = np.array(dir_pat)
+        # dir_pat = dir_pat.reshape((n_theta, n_phi))
+                
+        # return phi, theta, dir_pat
         
 
 #----------------------------------------------------------------------------#
