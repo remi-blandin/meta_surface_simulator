@@ -1,11 +1,11 @@
 import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
 from scipy.interpolate import RegularGridInterpolator
+import skrf as rf
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "transmit_array", "desordered_medium",
@@ -292,19 +292,22 @@ class unit_cell:
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
         self.rad_pats = []
+        self.scat_mats = []
         self.phase_states = []
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_rad_pat(self, input_rad_pat, output_rad_pat, 
+    def set_rad_pat(self, input_rad_pat, output_rad_pat, scat_mat_file,
                    phase_state=0.):
         
+        self.scat_mats.append(rf.Network(scat_mat_file))
         self.rad_pats.append((input_rad_pat, output_rad_pat))
         self.phase_states.append(phase_state)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot_rad_pats(self):
+        
         for rp, pt in zip(self.rad_pats, self.phase_states):
             
             # plot input radiation pattern
@@ -314,6 +317,36 @@ class unit_cell:
             # plot output radiation pattern
             fig, ax = rp[1].plot()
             ax.set_title("Output radiation pattern, phase state " + str(pt))
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_scat_mats(self):
+        
+        for sm, pt in zip(self.scat_mats, self.phase_states):
+            
+            fig = plt.figure()
+            
+            sm.plot_s_db(0,0)
+            sm.plot_s_db(2,2)
+            sm.plot_s_db(0,2)
+            sm.plot_s_db(2,0)
+            
+            plt.title("Input scattering matrix, phase state " + str(pt))
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def idx_phase_state(self, phase):
+        
+        min_phase_diff = np.abs(np.array(self.phase_states) - 
+                                phase % (2. * np.pi))
+        return np.argmin(min_phase_diff)
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+            
+    def input_sig(self, incoming_wave, theta, phi, phase):
+        
+        idx_pt = self.idx_phase_state(phase)
+        return incoming_wave * self.rad_pats[idx_pt][0].value(theta, phi)
 
 #----------------------------------------------------------------------------#
     
