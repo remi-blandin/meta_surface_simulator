@@ -36,19 +36,22 @@ uc.set_rad_pat(rp_in_pi, rp_out_pi, "transmission_coef_state_pi.s4p",
                phase_state=np.pi)
 
 # uc.plot_rad_pats()
-uc.plot_scat_mats()
+# uc.plot_scat_mats()
 
 #----------------------------------------------------------------------------#
 # Compute the input signal of the unit cell
 
 theta = np.linspace(0., np.pi/2., 101)
 phi = np.zeros(101)
-phase = 2.3
+phase = 0.1
 
 a0 = uc.input_sig(1., theta, phi, phase)
+b0 = uc.output_sig(a0, phase)
 
 plt.figure()
-plt.plot(theta*180./np.pi, a0)
+plt.plot(theta*180./np.pi, a0, label="a0")
+plt.plot(theta*180./np.pi, np.real(b0), label="b0")
+plt.legend()
 plt.xlabel("theta (deg)")
 plt.ylabel("a0")
 plt.show()

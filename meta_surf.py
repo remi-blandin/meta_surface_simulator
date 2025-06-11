@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
 from scipy.interpolate import RegularGridInterpolator
+from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
@@ -324,7 +325,7 @@ class unit_cell:
         
         for sm, pt in zip(self.scat_mats, self.phase_states):
             
-            fig = plt.figure()
+            plt.figure()
             
             sm.plot_s_db(0,0)
             sm.plot_s_db(2,2)
@@ -347,6 +348,22 @@ class unit_cell:
         
         idx_pt = self.idx_phase_state(phase)
         return incoming_wave * self.rad_pats[idx_pt][0].value(theta, phi)
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def output_sig(self, input_sig, phase):
+        
+        idx_pt = self.idx_phase_state(phase)
+        ntwk = self.scat_mats[idx_pt]
+        
+        freq = c / self.wavelgth
+        idx = np.argmin(np.abs(ntwk.frequency.f - freq))
+        
+        # get the transmission coefficcient at this specific frequency
+        transmission_coef_db = ntwk.s_db[idx][0,2]
+        transmission_coef = ntwk.s[idx][0,2]
+        
+        return transmission_coef * input_sig
 
 #----------------------------------------------------------------------------#
     
