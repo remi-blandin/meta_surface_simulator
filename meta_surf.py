@@ -360,10 +360,21 @@ class unit_cell:
         idx = np.argmin(np.abs(ntwk.frequency.f - freq))
         
         # get the transmission coefficcient at this specific frequency
-        transmission_coef_db = ntwk.s_db[idx][0,2]
         transmission_coef = ntwk.s[idx][0,2]
         
         return transmission_coef * input_sig
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def field_from_sig(self, output_sig, dist,\
+                                theta_out, phi_out, phase):
+        
+        idx_pt = self.idx_phase_state(phase)
+        
+        return output_sig \
+            * self.rad_pats[idx_pt][1].value(theta_out, phi_out) \
+            * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
+                    /4. / np.pi / dist
 
 #----------------------------------------------------------------------------#
     
