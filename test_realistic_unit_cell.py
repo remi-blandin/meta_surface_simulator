@@ -43,7 +43,7 @@ uc.plot_scat_mats()
 
 theta = np.linspace(0., np.pi/2., 101)
 phi = np.zeros(101)
-phase = 0.1
+phase = 0.1 * np.ones(101)
 
 a0 = uc.input_sig(1., theta, phi, phase)
 b0 = uc.output_sig(a0, phase)

@@ -261,15 +261,15 @@ class simple_unit_cell:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def output_sig(self, incoming_wave, theta, phi, phase_shift):
-        return self.input_sig(incoming_wave, theta, phi) * \
-            np.exp(-1j * phase_shift)
+    def output_sig(self, input_sig, phase_shift):
+        return input_sig * np.exp(-1j * phase_shift)
             
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
             
     def field(self, incoming_wave, theta, phi, phase_shift, \
                        dist, theta_out, phi_out):
-        return self.output_sig(incoming_wave, theta, phi, phase_shift) \
+        input_sig = self.input_sig(incoming_wave, theta, phi)
+        return self.output_sig(input_sig, phase_shift) \
             * self.directivity(theta_out, phi_out) \
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
@@ -346,23 +346,60 @@ class unit_cell:
             
     def input_sig(self, incoming_wave, theta, phi, phase):
         
-        idx_pt = self.idx_phase_state(phase)
-        return incoming_wave * self.rad_pats[idx_pt][0].value(theta, phi)
+        nb_phase = max(phase.shape)
+        
+        if nb_phase > 1:
+            input_sigs = np.empty(nb_phase, dtype=np.complex128)
+            
+            for idx, (t, p, pt) in enumerate(zip(theta, phi, phase)):
+                idx_pt = self.idx_phase_state(pt)
+                input_sigs[idx] = incoming_wave * \
+                    self.rad_pats[idx_pt][0].value(t, p)
+        else:
+            idx_pt = self.idx_phase_state(phase)
+            input_sigs = incoming_wave * \
+                self.rad_pats[idx_pt][0].value(theta, phi)
+            
+        return input_sigs
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def output_sig(self, input_sig, phase):
         
-        idx_pt = self.idx_phase_state(phase)
-        ntwk = self.scat_mats[idx_pt]
-        
         freq = c / self.wavelgth
-        idx = np.argmin(np.abs(ntwk.frequency.f - freq))
         
-        # get the transmission coefficcient at this specific frequency
-        transmission_coef = ntwk.s[idx][0,2]
+        nb_sigs = max(input_sig.shape)
         
-        return transmission_coef * input_sig
+        if nb_sigs > 1:
+        
+            output_sigs = np.empty(nb_sigs, dtype=np.complex128)
+            
+            for idx, (sig, pt) in enumerate(zip(input_sig, phase)):
+                
+                idx_pt = self.idx_phase_state(pt)
+                ntwk = self.scat_mats[idx_pt]
+                
+                idx_f = np.argmin(np.abs(ntwk.frequency.f - freq))
+                
+                # get the transmission coefficcient at this specific frequency
+                transmission_coef = ntwk.s[idx_f][0,2]
+                
+                output_sigs[idx] = transmission_coef * sig
+                
+        else:
+            
+            idx_pt = self.idx_phase_state(phase)
+            ntwk = self.scat_mats[idx_pt]
+            
+            idx_f = np.argmin(np.abs(ntwk.frequency.f - freq))
+            
+            # get the transmission coefficcient at this specific frequency
+            transmission_coef = ntwk.s[idx_f][0,2]
+            
+            output_sigs = transmission_coef * input_sig
+            
+        
+        return output_sigs
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
@@ -549,8 +586,7 @@ class transmit_array:
         ds, theta_in, phi_in = self.input_coords()
         
         output_sig = self.unit_cell.output_sig(
-            self.input_sig, theta_in, phi_in, 
-            self.phase_mask)
+            self.input_sig, self.phase_mask)
                 
         self.output_sig = output_sig
                 
