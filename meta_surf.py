@@ -109,16 +109,13 @@ class radiation_pattern:
     
     """A pattern defined over 2 angular spherical coordinates"""
     
-    def __init__(self, csv_file):
-        # self.phi = []
-        # self.theta = []
-        # self.rad_pat = np.array()
+    def __init__(self, csv_file, flip_ud=False):
         
-        self.load_pattern_from_csv(csv_file)
+        self.load_pattern_from_csv(csv_file, flip_ud)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def load_pattern_from_csv(self, csv_file):
+    def load_pattern_from_csv(self, csv_file, flip_ud):
         self.phi = []
         all_phis_picked = False
         self.theta = []
@@ -163,6 +160,10 @@ class radiation_pattern:
         self.theta = np.array(self.theta) * np.pi / 180.
 
         dir_pat = np.array(dir_pat)
+        
+        if flip_ud:
+            dir_pat = np.flipud(dir_pat)
+        
         self.rad_pat = dir_pat.reshape((self.n_theta, self.n_phi))
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -295,58 +296,24 @@ class unit_cell:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def set_dirpat(self, csv_file_input_rad_pat, csv_file_output_rad_pat, 
+    def set_rad_pat(self, input_rad_pat, output_rad_pat, 
                    phase_state=0.):
-        
-        input_rad_pat = radiation_pattern(csv_file_input_rad_pat)
-        output_rad_pat = radiation_pattern(csv_file_output_rad_pat)
         
         self.rad_pats.append((input_rad_pat, output_rad_pat))
         self.phase_states.append(phase_state)
         
-        # phi = []
-        # all_phis_picked = False
-        # theta = []
-        # all_theta_picked = False
-        # dir_pat = []
-        
-        # with open(csv_file, mode='r') as file:
-        #     reader = csv.reader(file)
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_rad_pats(self):
+        for rp, pt in zip(self.rad_pats, self.phase_states):
             
-        #     # skip header
-        #     next(reader) 
+            # plot input radiation pattern
+            fig, ax = rp[0].plot()
+            ax.set_title("Input radiation pattern, phase state " + str(pt))
             
-        #     # extract first row
-        #     row = next(reader)
-        #     phi.append(float(row[0]))
-        #     theta.append(float(row[1]))
-        #     dir_pat.append(float(row[2]))
-            
-        #     for row in reader:
-                
-        #         # extract phi coordinate
-        #         p = float(row[0])
-        #         if p < phi[-1]:
-        #             all_phis_picked = True
-        #         if not(all_phis_picked) and p != phi[-1]:
-        #             phi.append(p)
-                
-        #         # extract theta coordinate
-        #         t = float(row[1])
-        #         if t < theta[-1]:
-        #             all_theta_picked = True
-        #         if not(all_theta_picked) and t != theta[-1]:
-        #             theta.append(t)
-                
-        #         dir_pat.append(float(row[2]))
-        
-        # n_phi = len(phi)
-        # n_theta = len(theta)
-        # dir_pat = np.array(dir_pat)
-        # dir_pat = dir_pat.reshape((n_theta, n_phi))
-                
-        # return phi, theta, dir_pat
-        
+            # plot output radiation pattern
+            fig, ax = rp[1].plot()
+            ax.set_title("Output radiation pattern, phase state " + str(pt))
 
 #----------------------------------------------------------------------------#
     
