@@ -406,12 +406,32 @@ class unit_cell:
     def field_from_sig(self, output_sig, dist,\
                                 theta_out, phi_out, phase):
         
-        idx_pt = self.idx_phase_state(phase)
+        nb_sigs = max(output_sig.shape)
         
-        return output_sig \
-            * self.rad_pats[idx_pt][1].value(theta_out, phi_out) \
-            * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
-                    /4. / np.pi / dist
+        if nb_sigs > 1:
+            
+            output_fields = np.empty(nb_sigs, dtype=np.complex128)
+            
+            for idx, (b0, t, p, pt) in enumerate(zip(output_sig, theta_out,
+                                                     phi_out, phase)):
+                
+                idx_pt = self.idx_phase_state(pt)
+                
+                output_fields[idx] = b0 * \
+                    self.rad_pats[idx_pt][1].value(t, p) * \
+                    self.wavelgth * np.exp(-1j * 2. * np.pi * dist / \
+                   self.wavelgth) /4. / np.pi / dist
+                        
+        else:
+            
+            idx_pt = self.idx_phase_state(phase)
+                
+            output_fields = output_sig \
+                * self.rad_pats[idx_pt][1].value(theta_out, phi_out) \
+                * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / \
+                 self.wavelgth) /4. / np.pi / dist
+        
+        return output_fields
 
 #----------------------------------------------------------------------------#
     
