@@ -27,4 +27,8 @@ horn = simplified_horn_source()
 #----------------------------------------------------------------------------#
 # create a transmit array containing 20 x 20 cells illuminated by a horn source
 
-ta = transmit_array(20, 20, uc, horn)
+ta = transmit_array(2, 2, uc, horn)
+ta.field([point(0., 0., 0.5)])
+
+field_calc = field_calculator(ta)
+field_calc.field_in_plane(plane="xz")
