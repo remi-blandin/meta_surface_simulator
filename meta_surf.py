@@ -277,7 +277,7 @@ class simple_unit_cell:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
                     
     def field_from_sig(self, output_sig, dist,\
-                                theta_out, phi_out):
+                                theta_out, phi_out, phase_shift):
         return output_sig \
             * self.directivity(theta_out, phi_out) \
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
@@ -751,12 +751,12 @@ class desordered_medium:
         
         # compute direct field
         Gdir = np.empty((1, nb_obs_pts), dtype=np.complex128)
-        for idx, obs in enumerate(obs_pts):
-            Gdir[0,idx] = self.source.field(obs)
+        Gdir[0,:] = self.source.field(obs_pts)[0]
         
         # compute input and output Green functions
+        self.Gin[0,:] = self.source.field(self.scat_pos)[0]
         for idx, scat in enumerate(self.scat_pos):
-            self.Gin[0,idx] = self.source.field(scat)
+            # self.Gin[0,idx] = self.source.field(scat)
             
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
@@ -789,91 +789,8 @@ class desordered_medium:
                    corner_pt = point(0.,0.,.0), nb_side_pts=50,
                    plot_grid=False):
         
-        if side == -1:
-            side = 10 * self.wavelgth
-            if plane == "xz":
-                corner_pt = point(side/2., 0., 0.)
-                xlabel = "x (m)"
-                ylabel = "z (m)"
-                
-            elif plane == "yz":
-                corner_pt = point(0., side/2., 0.)
-                xlabel = "y (m)"
-                ylabel = "z (m)"
-                
-            elif plane == "xy":
-                corner_pt = point(side/2, side/2., side/2)
-                xlabel = "x (m)"
-                ylabel = "y (m)"
-            
-        g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
-        
-        if plot_grid:
-            g.plot()
-        
-        dir_field, scat_field = self.field(g.points)
-        
-        dir_field = dir_field.reshape((nb_side_pts, nb_side_pts)).T
-        scat_field = scat_field.reshape((nb_side_pts, nb_side_pts)).T
-        tot_field = dir_field + scat_field
-        
-        # Prevent garbage collection
-        global slider, fig
-        
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-        
-        fig.suptitle("Plane " + plane)
-        
-        max_value = np.max([np.abs(dir_field).max(), \
-                           np.abs(scat_field).max(), \
-                               np.abs(tot_field).max()])
-            
-        im1 = ax1.imshow(np.abs(dir_field), vmax=max_value, 
-                        extent=g.bounding_box, origin='lower')
-        ax1.set_xlabel(xlabel)
-        ax1.set_ylabel(ylabel)
-        ax1.set_title("Direct field")
-
-        im2 = ax2.imshow(np.abs(scat_field), vmax=max_value, \
-                   extent=g.bounding_box, origin='lower')
-        ax2.set_xlabel(xlabel)
-        ax2.set_ylabel(ylabel)
-        ax2.set_title("Scattered field")
-        
-        im3 = ax3.imshow(np.abs(tot_field), vmax=max_value, \
-                   extent=g.bounding_box, origin='lower')
-        ax3.set_xlabel(xlabel)
-        ax3.set_ylabel(ylabel)
-        ax3.set_title("Total field")
-
-        cbar = fig.colorbar(im1, ax=[ax1, ax2, ax3], 
-                           location='right', 
-                           pad=0.02, 
-                           shrink=0.5)
-        cbar.set_label('|E|')
-        
-        # create a slider to adjust the maximal color value 
-        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
-        slider = Slider(
-            ax=ax_slider,
-            label='Max Color Value',
-            valmin=0.,
-            valmax=max_value,
-            valinit=max_value,
-            valstep=0.01
-        )
-        
-        # Function to update vmax
-        def update(val):
-            im1.set_clim(vmin=0, vmax=slider.val)
-            im2.set_clim(vmin=0, vmax=slider.val)
-            im3.set_clim(vmin=0, vmax=slider.val)
-            cbar.update_normal(im1)
-            fig.canvas.draw_idle()
-            
-        slider.on_changed(update)
-        
-        plt.show()
+        fc = field_calculator(self)
+        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     

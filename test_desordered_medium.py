@@ -76,6 +76,9 @@ dm.plot_scatterers()
 #----------------------------------------------------------------------------#
 # compute the radiated field
 
+field_calc = field_calculator(dm)
+field_calc.field_in_plane(plane="xz")
+
 dm.plot_field(plane="xz", nb_side_pts=100)
 dm.plot_field(plane="yz")
 dm.plot_field(plane="xy")
