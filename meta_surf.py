@@ -12,7 +12,7 @@ __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "transmit_array", "desordered_medium",
            "radiation_pattern", "field_calculator"]
 
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class point:
     
@@ -30,7 +30,7 @@ class point:
                        (self.y - other_point.y)**2 + \
                        (self.z - other_point.z)**2)
             
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class point_grid_2d:
     
@@ -104,7 +104,7 @@ class point_grid_2d:
         ax.set_zlabel('Z')
         plt.show()
         
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class radiation_pattern:
     
@@ -238,7 +238,7 @@ class radiation_pattern:
         
         return interp_val
 
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class simple_unit_cell:
     """A simple model for a unit cell"""
@@ -283,7 +283,7 @@ class simple_unit_cell:
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
     
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class unit_cell:
     """A unit cell whose characteristics are defined from simulations"""
@@ -433,7 +433,7 @@ class unit_cell:
         
         return output_fields
 
-#----------------------------------------------------------------------------#
+##############################################################################
     
 class simplified_horn_source:
     """A simple model for a horn source"""
@@ -450,7 +450,7 @@ class simplified_horn_source:
             np.exp(-1j * 2. * np.pi * dist /self.wavelgth) * \
                 self.directivity(theta, phi) / 4. / np.pi / dist
                 
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class transmit_array:
     """A simple transmit array model"""
@@ -643,8 +643,17 @@ class transmit_array:
 
     def field_labels(self):
         return ["Radiated field from transmit array"]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, plane="xz", side = -1, \
+                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   plot_grid=False):
+        
+        fc = field_calculator(self)
+        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
                 
-#----------------------------------------------------------------------------#
+##############################################################################
 
 sourceType = Union[transmit_array, simplified_horn_source]
 
@@ -797,7 +806,7 @@ class desordered_medium:
     def field_labels(self):
         return ["Direct field", "Scattered field", "Total field"]
 
-#----------------------------------------------------------------------------#
+##############################################################################
 
 class field_calculator:
     
