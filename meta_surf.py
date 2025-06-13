@@ -432,6 +432,43 @@ class unit_cell:
                  self.wavelgth) /4. / np.pi / dist
         
         return output_fields
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field(self, points):
+                
+        nb_points = len(points)
+        rad_field = np.empty(nb_points, dtype=np.complex128)
+        
+        for idx, point in enumerate(points):
+        
+            dp = np.sqrt(np.square(point.x) + \
+                         np.square(point.y) +\
+                         np.square(point.z))
+            theta_out = np.acos(point.z / dp)
+            phi_out = np.acos((point.y) / \
+                           np.sqrt(np.square(point.x) \
+                           + np.square(point.y)))
+            
+            # FIXME: add the possibility to set the amplitude and the phase
+            rad_field[idx] = self.field_from_sig(
+                    np.array([1.]), dp, theta_out, phi_out, 0.)
+        
+        return [rad_field]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, plane="xz", side = -1, \
+                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   plot_grid=False):
+        
+        fc = field_calculator(self)
+        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field_labels(self):
+        return ["Field radiated by a unit cell"]
 
 ##############################################################################
     

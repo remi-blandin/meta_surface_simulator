@@ -44,10 +44,11 @@ uc.plot_scat_mats()
 theta = np.linspace(0., np.pi/2., 101)
 phi = np.zeros(101)
 phase = 0.1 * np.ones(101)
+dist = 0.05 * np.ones(101)
 
 a0 = uc.input_sig(1., theta, phi, phase)
 b0 = uc.output_sig(a0, phase)
-rad_field = uc.field_from_sig(b0, 0.05, theta, phi, phase)
+rad_field = uc.field_from_sig(b0, dist, theta, phi, phase)
 
 plt.figure()
 plt.plot(theta*180./np.pi, a0, label="a0")
@@ -57,3 +58,8 @@ plt.legend()
 plt.xlabel("theta (deg)")
 plt.ylabel("Ampplitude")
 plt.show()
+
+#----------------------------------------------------------------------------#
+# plot the radiated field
+
+uc.plot_field(plane="xz", side=0.1)
