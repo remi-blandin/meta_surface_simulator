@@ -24,6 +24,11 @@ class point:
         self.z = z
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
+    def __repr__(self):
+        return f"Point(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def distance_to(self, other_point):
         return np.sqrt((self.x - other_point.x)**2 + \
@@ -195,7 +200,13 @@ class radiation_pattern:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def value(self, theta, phi, plot=False):
-        
+            
+        # prefilter Nans as it can make the interpolation crash
+        nan_mask = np.isnan(theta)
+        theta = np.where(nan_mask, 0, theta)
+        nan_mask = np.isnan(phi)
+        phi = np.where(nan_mask, 0, phi)
+            
         # Create interpolator
         interp = RegularGridInterpolator(
             (self.theta, self.phi),  # Grid points
@@ -459,7 +470,7 @@ class unit_cell:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
                    plot_grid=False):
         
         fc = field_calculator(self)
@@ -684,7 +695,7 @@ class transmit_array:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
                    plot_grid=False):
         
         fc = field_calculator(self)
@@ -832,7 +843,7 @@ class desordered_medium:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
                    plot_grid=False):
         
         fc = field_calculator(self)
@@ -855,26 +866,34 @@ class field_calculator:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def field_in_plane(self, plane="xz", side = -1, \
-                   corner_pt = point(0.,0.,.0), nb_side_pts=50,
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
                    plot_grid=False):
+        
+        # set the axis labels corresponding to the chosen plane
+        if plane == "xz":
+            xlabel = "x (m)"
+            ylabel = "z (m)"
+            
+        elif plane == "yz":
+            xlabel = "y (m)"
+            ylabel = "z (m)"
+            
+        elif plane == "xy":
+            xlabel = "x (m)"
+            ylabel = "y (m)"
         
         # set the grid parameters
         if side == -1:
             side = 10 * self.source.wavelgth
+        if corner_pt.x == 1.e9:
             if plane == "xz":
                 corner_pt = point(side/2., 0., 0.)
-                xlabel = "x (m)"
-                ylabel = "z (m)"
                 
             elif plane == "yz":
                 corner_pt = point(0., side/2., 0.)
-                xlabel = "y (m)"
-                ylabel = "z (m)"
                 
             elif plane == "xy":
                 corner_pt = point(side/2, side/2., side/2)
-                xlabel = "x (m)"
-                ylabel = "y (m)"
             
         g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
         
@@ -890,8 +909,10 @@ class field_calculator:
         # the overall maximal value
         max_fields = []
         for idx, f in enumerate(fields):
-            fields[idx] = f.reshape((nb_side_pts, nb_side_pts)).T
-            max_fields.append(np.abs(f).max())
+            fields[idx] = np.abs(f.reshape((nb_side_pts, nb_side_pts)).T)
+            inf_mask = np.isinf(fields[idx])
+            fields[idx] = np.where(inf_mask, 0., fields[idx])
+            max_fields.append(fields[idx].max())
         max_value = np.max(max_fields)
         
         # Prevent garbage collection

@@ -62,4 +62,6 @@ plt.show()
 #----------------------------------------------------------------------------#
 # plot the radiated field
 
-uc.plot_field(plane="xz", side=0.1)
+uc.plot_field(plane="xz", side=0.03)
+uc.plot_field(plane="yz", side=0.03)
+uc.plot_field(plane="xy", side=0.03)
