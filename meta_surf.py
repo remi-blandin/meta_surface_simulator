@@ -5,6 +5,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import map_coordinates
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
@@ -163,7 +164,9 @@ class radiation_pattern:
         
         # convert to radians
         self.phi = np.array(self.phi) * np.pi / 180.
+        self.d_phi = self.phi[1] - self.phi[0]
         self.theta = np.array(self.theta) * np.pi / 180.
+        self.d_theta = self.theta[1] - self.theta[0]
 
         dir_pat = np.array(dir_pat)
         
@@ -171,6 +174,12 @@ class radiation_pattern:
             dir_pat = np.flipud(dir_pat)
         
         self.rad_pat = dir_pat.reshape((self.n_theta, self.n_phi))
+        
+        # self.interpolator = RegularGridInterpolator(
+        #     (self.theta, self.phi),  # Grid points
+        #     self.rad_pat,                  # Grid values
+        #     method='linear'          # 'linear', 'nearest', 'slinear', 'cubic'
+        # )
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -206,15 +215,24 @@ class radiation_pattern:
         theta = np.where(nan_mask, 0, theta)
         nan_mask = np.isnan(phi)
         phi = np.where(nan_mask, 0, phi)
-            
-        # Create interpolator
-        interp = RegularGridInterpolator(
-            (self.theta, self.phi),  # Grid points
-            self.rad_pat,                  # Grid values
-            method='linear'          # 'linear', 'nearest', 'slinear', 'cubic'
-        )
         
-        interp_val = interp(np.array([theta, phi]).T)
+        if theta.ndim == 0:
+            theta = np.array([theta])
+            
+        if phi.ndim == 0:
+            phi = np.array([phi])
+        
+        querry_pts = np.array([(theta - self.theta[0])/self.d_theta ,
+            (phi - self.phi[0]) / self.d_phi])
+        
+        # interp_val = self.interpolator(np.array([theta, phi]).T)
+        
+        interp_val = map_coordinates(
+            self.rad_pat,
+            querry_pts,  # Transpose to (2, N) shape
+            order=1,         # Linear interpolation
+            mode='nearest'   # Handle out-of-bounds
+        )
         
         # --- Draw spheres at interpolated points ---
         def add_sphere(ax, x, y, z, radius=0.05, color='red'):
