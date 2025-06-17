@@ -8,7 +8,7 @@ from meta_surf import *
 # parameters
 
 unit_cell_side_lgth = 0.03
-dist_src = 10.
+dist_src = 0.5
 n_cells_x = 20
 n_cells_y = 20
 
@@ -22,16 +22,17 @@ phi_beam = 0
 phase_mask = "focal_point"
 focal_point = point(0., 0., 0.3)
 
-quant = True
+quant = False
 
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
 
 ucell = simple_unit_cell(unit_cell_side_lgth)
-horn = simplified_horn_source(5)
+# source = simplified_horn_source(5)
+source = plane_wave()
 
-ta = transmit_array(n_cells_x, n_cells_y, ucell, horn, dist_src)
+ta = transmit_array(n_cells_x, n_cells_y, ucell, source, dist_src)
 
 # generate phase mask
 if phase_mask == "random":
@@ -75,9 +76,6 @@ dm.plot_scatterers()
 
 #----------------------------------------------------------------------------#
 # compute the radiated field
-
-field_calc = field_calculator(dm)
-field_calc.field_in_plane(plane="xz")
 
 dm.plot_field(plane="xz", nb_side_pts=100)
 dm.plot_field(plane="yz")

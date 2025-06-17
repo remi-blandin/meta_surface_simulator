@@ -11,8 +11,8 @@ from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
-           "simplified_horn_source", "transmit_array", "desordered_medium",
-           "radiation_pattern", "field_calculator"]
+           "simplified_horn_source", "plane_wave", "transmit_array", 
+           "desordered_medium", "radiation_pattern", "field_calculator"]
 
 ##############################################################################
 
@@ -518,13 +518,31 @@ class simplified_horn_source:
         self.order = order
         self.wavelgth = wavelgth
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
     def directivity(self, theta, phi):
         return 2.*(self.order + 1) * np.power(np.cos(theta), self.order)
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def field(self, theta, phi, power, dist):
         return np.sqrt(power) * self.wavelgth * \
             np.exp(-1j * 2. * np.pi * dist /self.wavelgth) * \
                 self.directivity(theta, phi) / 4. / np.pi / dist
+
+##############################################################################
+
+class plane_wave:
+    
+    """A plane wave source oject"""
+    
+    def __init__(self, wavelgth=0.06):
+        self.wavelgth = wavelgth
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field(self, theta, phi, power, dist):
+        return np.sqrt(power) * np.exp(-1j * 2. * np.pi * dist /self.wavelgth)
                 
 ##############################################################################
 
