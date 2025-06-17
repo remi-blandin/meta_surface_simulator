@@ -6,6 +6,7 @@ from matplotlib.widgets import Slider
 import csv
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import map_coordinates
+from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
@@ -216,24 +217,27 @@ class radiation_pattern:
         nan_mask = np.isnan(phi)
         phi = np.where(nan_mask, 0, phi)
         
-        if theta.ndim == 0:
-            theta = np.array([theta])
+        # if theta.ndim == 0:
+        #     theta = np.array([theta])
             
-        if phi.ndim == 0:
-            phi = np.array([phi])
+        # if phi.ndim == 0:
+        #     phi = np.array([phi])
         
-        querry_pts = np.array([(theta - self.theta[0])/self.d_theta ,
-            (phi - self.phi[0]) / self.d_phi])
+        # querry_pts = np.array([(theta - self.theta[0])/self.d_theta ,
+        #     (phi - self.phi[0]) / self.d_phi])
         
-        # interp_val = self.interpolator(np.array([theta, phi]).T)
+        # interp_val = map_coordinates(
+        #     self.rad_pat,
+        #     querry_pts,  # Transpose to (2, N) shape
+        #     order=1,         # Linear interpolation
+        #     mode='nearest'   # Handle out-of-bounds
+        # )
         
-        interp_val = map_coordinates(
-            self.rad_pat,
-            querry_pts,  # Transpose to (2, N) shape
-            order=1,         # Linear interpolation
-            mode='nearest'   # Handle out-of-bounds
-        )
+        points_pixel = self._physical_to_pixel(theta, phi)
         
+        # Call Numba-accelerated interpolation
+        interp_val = self._interpolate_numba(self.rad_pat, points_pixel)
+                
         # --- Draw spheres at interpolated points ---
         def add_sphere(ax, x, y, z, radius=0.05, color='red'):
             """Add a 3D sphere to the axis."""
@@ -266,7 +270,35 @@ class radiation_pattern:
                 add_sphere(ax, xi, yi, zi, radius=0.1, color='red')
         
         return interp_val
-
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    @staticmethod
+    @jit(nopython=True)
+    def _interpolate_numba(grid, points_pixel):
+        """Numba-accelerated interpolation (pixel space)."""
+        values = np.empty(len(points_pixel))
+        nx, ny = grid.shape
+        for i in range(len(points_pixel)):
+            x, y = points_pixel[i]
+            # Bilinear interpolation
+            x0, y0 = int(np.floor(x)), int(np.floor(y))
+            x1, y1 = min(x0 + 1, nx - 1), min(y0 + 1, ny - 1)
+            wx, wy = x - x0, y - y0
+            values[i] = (1 - wx) * (1 - wy) * grid[x0, y0] + \
+                        wx * (1 - wy) * grid[x1, y0] + \
+                        (1 - wx) * wy * grid[x0, y1] + \
+                        wx * wy * grid[x1, y1]
+        return values
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def _physical_to_pixel(self, theta, phi):
+        """Convert physical to pixel coordinates."""
+        theta_px = (theta - self.theta[0]) / self.d_theta
+        phi_px = (phi- self.phi[0]) / self.d_phi
+        return np.column_stack((theta_px, phi_px))
+    
 ##############################################################################
 
 class simple_unit_cell:
@@ -474,8 +506,8 @@ class unit_cell:
             dp = np.sqrt(np.square(point.x) + \
                          np.square(point.y) +\
                          np.square(point.z))
-            theta_out = np.acos(point.z / dp)
-            phi_out = np.acos((point.y) / \
+            theta_out = np.arccos(point.z / dp)
+            phi_out = np.arccos((point.y) / \
                            np.sqrt(np.square(point.x) \
                            + np.square(point.y)))
             
@@ -509,7 +541,7 @@ class simplified_horn_source:
         self.wavelgth = wavelgth
         
     def directivity(self, theta, phi):
-        return 2.*(self.order + 1) * np.pow(np.cos(theta), self.order)
+        return 2.*(self.order + 1) * np.power(np.cos(theta), self.order)
     
     def field(self, theta, phi, power, dist):
         return np.sqrt(power) * self.wavelgth * \
@@ -642,8 +674,8 @@ class transmit_array:
         ds = np.sqrt(np.square(self.x_ordered) + \
                           np.square(self.y_ordered)\
                           + np.square(self.dist_src))
-        theta_in = np.acos(self.dist_src / ds)
-        phi_in = np.acos(self.y_ordered / np.sqrt(np.square(self.x_ordered) + \
+        theta_in = np.arccos(self.dist_src / ds)
+        phi_in = np.arccos(self.y_ordered / np.sqrt(np.square(self.x_ordered) + \
                                     + np.square(self.y_ordered)))
             
         return ds, theta_in, phi_in
@@ -692,8 +724,8 @@ class transmit_array:
             dp = np.sqrt(np.square(self.x_ordered - point.x) + \
                          np.square(self.y_ordered - point.y) +\
                          np.square(point.z))
-            theta_out = np.acos(point.z / dp)
-            phi_out = np.acos((point.y - self.y_ordered) / \
+            theta_out = np.arccos(point.z / dp)
+            phi_out = np.arccos((point.y - self.y_ordered) / \
                            np.sqrt(np.square(point.x - self.x_ordered) \
                            + np.square(point.y - self.y_ordered)))
                     
