@@ -2,6 +2,11 @@ from meta_surf import *
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from scipy.constants import c  # Speed of light in vacuum
+
+freq = 5.2e+9
+wavelgth = c / freq
+# wavelgth = 0.06
 
 #----------------------------------------------------------------------------#
 # Create a realistic unit cell
@@ -41,7 +46,7 @@ elif angular_spacing == "5deg":
 #----------------------------------------------------------------------------#
 # create a horn source
 
-horn = simplified_horn_source()
+horn = simplified_horn_source(wavelgth = wavelgth)
 
 #----------------------------------------------------------------------------#
 # create transmit arrays containing 20 x 20 cells illuminated by a horn source
@@ -49,14 +54,17 @@ horn = simplified_horn_source()
 n_cells = 10
 
 # a transmit array with simple cells
-ucs = simple_unit_cell()
-tas = transmit_array(n_cells, n_cells, ucs, horn)
+ucs = simple_unit_cell(wavelgth=wavelgth)
+tas = transmit_array(n_cells, n_cells, ucs, horn, wavelgth=wavelgth)
+tas.set_pahse_mask_alternate_lines()
+tas.plot_phase_mask()
 
-tas.plot_field(plane="xz", side=0.1)
+tas.plot_field(plane="xz", side=0.06)
+# tas.plot_field(plane="yz", side=0.06)
 
 # a transmit array with realistic cells
 ta = transmit_array(n_cells, n_cells, uc, horn)
-ta.field([point(0., 0., 0.5)])
+ta.set_pahse_mask_alternate_lines()
 
 # test execution time of radiation pattern interpolation
 start_time = time.time()
@@ -67,7 +75,8 @@ execution_time = end_time - start_time
 print(f"Execution time: {execution_time} seconds")
 
 start_time = time.time()
-ta.plot_field(plane="xz", side=0.1)
+ta.plot_field(plane="xz", side=0.06)
+# ta.plot_field(plane="yz", side=0.06)
 end_time = time.time()
 execution_time = end_time - start_time
 print(f"Execution time: {execution_time} seconds")

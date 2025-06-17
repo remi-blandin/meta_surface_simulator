@@ -176,12 +176,6 @@ class radiation_pattern:
         
         self.rad_pat = dir_pat.reshape((self.n_theta, self.n_phi))
         
-        # self.interpolator = RegularGridInterpolator(
-        #     (self.theta, self.phi),  # Grid points
-        #     self.rad_pat,                  # Grid values
-        #     method='linear'          # 'linear', 'nearest', 'slinear', 'cubic'
-        # )
-        
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot(self):
@@ -216,22 +210,6 @@ class radiation_pattern:
         theta = np.where(nan_mask, 0, theta)
         nan_mask = np.isnan(phi)
         phi = np.where(nan_mask, 0, phi)
-        
-        # if theta.ndim == 0:
-        #     theta = np.array([theta])
-            
-        # if phi.ndim == 0:
-        #     phi = np.array([phi])
-        
-        # querry_pts = np.array([(theta - self.theta[0])/self.d_theta ,
-        #     (phi - self.phi[0]) / self.d_phi])
-        
-        # interp_val = map_coordinates(
-        #     self.rad_pat,
-        #     querry_pts,  # Transpose to (2, N) shape
-        #     order=1,         # Linear interpolation
-        #     mode='nearest'   # Handle out-of-bounds
-        # )
         
         points_pixel = self._physical_to_pixel(theta, phi)
         
@@ -622,6 +600,20 @@ class transmit_array:
         # update input and ouput signals 
         self.input_signals()
         self.output_signals()
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_pahse_mask_alternate_lines(self):
+        idx = 0
+        for idx_x in range(0, self.n_cell_x):
+            for idx_y in range(0, self.n_cell_y):
+                if idx_x / 2 % 1 == 0.5:
+                    self.phase_mask[idx] = np.pi
+                idx = idx + 1
+                
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -662,6 +654,16 @@ class transmit_array:
         
     def get_phase_mask(self):
         return self.phase_mask.reshape((self.n_cell_x, self.n_cell_y))
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_phase_mask(self):
+        
+        fig, ax = plt.subplots(1)
+        ax.imshow(self.get_phase_mask())
+        ax.set_title('Phase mask')
+        
+        return fig, ax
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
