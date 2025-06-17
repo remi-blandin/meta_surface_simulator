@@ -532,8 +532,10 @@ class transmit_array:
     """A simple transmit array model"""
     
     def __init__(self, n_cell_x, n_cell_y, unit_cell : 'simple_unit_cell', \
-                 source: 'simplified_horn_source', dist_src=0.5, \
-                 wavelgth=0.06):
+                 source: 'simplified_horn_source', dist_src=0.5):
+        
+        if unit_cell.wavelgth != source.wavelgth:
+            raise ValueError("The wavelength of the unite cell and the source must be equal")
         
         self.n_cell_x = n_cell_x
         self.n_cell_y = n_cell_y
@@ -541,11 +543,11 @@ class transmit_array:
         self.unit_cell = unit_cell
         self.phase_mask = np.zeros(self.nb_cell)
         self.source = source
+        self.wavelgth = source.wavelgth
         self.dist_src = dist_src
-        self.wavelgth = wavelgth
         self.input_sig = np.zeros(self.nb_cell, dtype=np.complex128)
         self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
-
+            
         
         # generate the coordinates of the centers of the cells
         x_min = -self.unit_cell.side_length * (self.n_cell_x - 1)/2. 
@@ -760,7 +762,7 @@ sourceType = Union[transmit_array, simplified_horn_source]
 class desordered_medium:
     """A simple disordered model"""
     
-    def __init__(self, source: sourceType, scat_pos=None, wavelgth=0.06):
+    def __init__(self, source: sourceType, scat_pos=None):
         
         if scat_pos == None:
             nb_scat = 25
@@ -768,7 +770,7 @@ class desordered_medium:
             nb_scat = len(scat_pos)
             
         self.initialize(nb_scat)
-        self.wavelgth = wavelgth
+        self.wavelgth = source.wavelgth
         self.scat_pos = scat_pos
         self.source = source
         self.T = np.zeros(1, dtype=np.complex128)
