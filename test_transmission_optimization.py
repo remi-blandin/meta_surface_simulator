@@ -4,7 +4,7 @@ import numpy as np
 obs_pt = point(0.,0.,1.)
 
 # create a horn source
-horn = simplified_horn_source()
+horn = simplified_horn_source(position=point(0.,0.,0.))
 horn.plot_field(plane="xz", side=1.)
 
 field_1m = horn.field(obs_pt)
