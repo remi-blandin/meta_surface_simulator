@@ -514,9 +514,10 @@ class unit_cell:
 class simplified_horn_source:
     """A simple model for a horn source"""
     
-    def __init__(self, order=5, wavelgth=0.06):
+    def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,0.5)):
         self.order = order
         self.wavelgth = wavelgth
+        self.position = position
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -536,13 +537,16 @@ class plane_wave:
     
     """A plane wave source oject"""
     
-    def __init__(self, wavelgth=0.06):
+    def __init__(self, wavelgth=0.06, position=point(0.,0.,0.5)):
         self.wavelgth = wavelgth
+        self.position = position
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def field(self, theta, phi, power, dist):
-        return np.sqrt(power) * np.exp(-1j * 2. * np.pi * dist /self.wavelgth)
+        return np.sqrt(power) * \
+            np.exp(-1j * 2. * np.pi * self.position.z * np.ones(theta.shape) 
+                   /self.wavelgth)
                 
 ##############################################################################
 
@@ -550,7 +554,7 @@ class transmit_array:
     """A simple transmit array model"""
     
     def __init__(self, n_cell_x, n_cell_y, unit_cell : 'simple_unit_cell', \
-                 source: 'simplified_horn_source', dist_src=0.5):
+                 source: 'simplified_horn_source'):
         
         if unit_cell.wavelgth != source.wavelgth:
             raise ValueError("The wavelength of the unite cell and the source must be equal")
@@ -562,7 +566,6 @@ class transmit_array:
         self.phase_mask = np.zeros(self.nb_cell)
         self.source = source
         self.wavelgth = source.wavelgth
-        self.dist_src = dist_src
         self.input_sig = np.zeros(self.nb_cell, dtype=np.complex128)
         self.output_sig = np.zeros(self.nb_cell, dtype=np.complex128)
             
@@ -693,12 +696,14 @@ class transmit_array:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def input_coords(self):
-        ds = np.sqrt(np.square(self.x_ordered) + \
-                          np.square(self.y_ordered)\
-                          + np.square(self.dist_src))
-        theta_in = np.arccos(self.dist_src / ds)
-        phi_in = np.arccos(self.y_ordered / np.sqrt(np.square(self.x_ordered) + \
-                                    + np.square(self.y_ordered)))
+        ps = self.source.position
+        ds = np.sqrt(np.square(self.x_ordered - ps.x) + \
+                          np.square(self.y_ordered - ps.y)\
+                          + np.square(ps.z))
+        theta_in = np.arccos(ps.z / ds)
+        phi_in = np.arccos((self.y_ordered - ps.y) / 
+            np.sqrt(np.square(self.x_ordered - ps.x) + \
+                                    + np.square(self.y_ordered - ps.y)))
             
         return ds, theta_in, phi_in
 

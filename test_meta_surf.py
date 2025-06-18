@@ -28,9 +28,9 @@ quant = False
 # Initialise metasuurface
 
 ucell = simple_unit_cell(unit_cell_side_lgth)
-horn = simplified_horn_source(5)
+horn = simplified_horn_source(5, position=point(0.,0.,dist_src))
 
-ta = transmit_array(n_cells_x, n_cells_y, ucell, horn, dist_src)
+ta = transmit_array(n_cells_x, n_cells_y, ucell, horn)
 
 # generate phase mask
 if phase_mask == "random":

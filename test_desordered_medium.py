@@ -29,10 +29,10 @@ quant = False
 # Initialise metasuurface
 
 ucell = simple_unit_cell(unit_cell_side_lgth)
-# source = simplified_horn_source(5)
-source = plane_wave()
+source = simplified_horn_source(5, position=point(0.,0.,dist_src))
+# source = plane_wave(position=point(0.,0.,dist_src))
 
-ta = transmit_array(n_cells_x, n_cells_y, ucell, source, dist_src)
+ta = transmit_array(n_cells_x, n_cells_y, ucell, source)
 
 # generate phase mask
 if phase_mask == "random":

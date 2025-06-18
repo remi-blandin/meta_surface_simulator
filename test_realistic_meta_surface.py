@@ -13,7 +13,7 @@ wavelgth = c / freq
 
 angular_spacing = "5deg" # "2deg"
 
-uc = unit_cell()
+uc = unit_cell(wavelgth = wavelgth)
 
 if angular_spacing == "2deg":
 
@@ -55,7 +55,7 @@ n_cells = 10
 
 # a transmit array with simple cells
 ucs = simple_unit_cell(wavelgth=wavelgth)
-tas = transmit_array(n_cells, n_cells, ucs, horn, wavelgth=wavelgth)
+tas = transmit_array(n_cells, n_cells, ucs, horn)
 tas.set_pahse_mask_alternate_lines()
 tas.plot_phase_mask()
 
