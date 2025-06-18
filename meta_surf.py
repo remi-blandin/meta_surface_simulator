@@ -623,13 +623,13 @@ class transmit_array:
         self.y = np.linspace(y_min, y_max, self.n_cell_y)
         
         # Generate lists containing the coordinates ordered by pairs
-        self.x_ordered = np.empty(self.nb_cell)
-        self.y_ordered = np.empty(self.nb_cell)
+        self.coord_cells = [point]*self.nb_cell
+        
+        # FIXME: possible to add a position attribute later
         idx = 0
         for x in self.x:
             for y in self.y:
-                self.x_ordered[idx] = x
-                self.y_ordered[idx] = y
+                self.coord_cells[idx] = point(x, y, 0.)
                 idx = idx + 1
                 
         self.input_signals()
@@ -685,11 +685,13 @@ class transmit_array:
 
     def set_phase_mask_beam(self, theta_beam, phi_beam, \
                              quantize=True ):
-        for idx in range(0, self.nb_cell):
+        
+        for idx, cell in enumerate(self.coord_cells):
+            
             self.phase_mask[idx] = \
             -2.* np.pi * np.sin(theta_beam) * ( \
-            np.cos(phi_beam) * self.x_ordered[idx] \
-            + np.sin(phi_beam) * self.y_ordered[idx] \
+            np.cos(phi_beam) * cell.x \
+            + np.sin(phi_beam) * cell.y \
                 ) / self.wavelgth 
             if quantize:
                 self.phase_mask[idx]  = \
@@ -702,12 +704,12 @@ class transmit_array:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def set_phase_mask_focal_point(self, focal_point, quantize=True):
-        for idx in range(0, self.nb_cell):
-            self.phase_mask[idx] = \
-                (-2. * np.pi * (np.sqrt(np.square(focal_point.z) + \
-             np.square(self.x_ordered[idx] - focal_point.x) + \
-             np.square(self.y_ordered[idx] - focal_point.y)) \
-                    - focal_point.z) / self.wavelgth)  % (2. * np.pi)
+        
+        for idx, cell in enumerate(self.coord_cells):
+            
+            self.phase_mask[idx] = (-2. * np.pi * (
+                cell.distance_to(focal_point) - focal_point.z) 
+                / self.wavelgth)  % (2. * np.pi)
             if quantize:
                 self.phase_mask[idx]  = \
                     round(((self.phase_mask[idx]) % np.pi) / np.pi) * np.pi
@@ -735,30 +737,12 @@ class transmit_array:
     
     def output_sigs(self):
         return self.output_sig.reshape(self.n_cell_x, self.n_cell_y)
-    
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def input_coords(self):
-        ps = self.source.position
-        ds = np.sqrt(np.square(self.x_ordered - ps.x) + \
-                          np.square(self.y_ordered - ps.y)\
-                          + np.square(ps.z))
-        theta_in = np.arccos(ps.z / ds)
-        phi_in = np.arccos((self.y_ordered - ps.y) / 
-            np.sqrt(np.square(self.x_ordered - ps.x) + \
-                                    + np.square(self.y_ordered - ps.y)))
-            
-        return ds, theta_in, phi_in
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def input_signals(self, power=1.):
-        
-        ds, theta_in, phi_in = self.input_coords()
 
-        input_signals = self.source.field(
-            theta_in, phi_in, power, ds
-            )
+        input_signals = self.source.field(self.coord_cells)[0]
         
         self.input_sig = input_signals
         
@@ -770,8 +754,6 @@ class transmit_array:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def output_signals(self, power=1.):
-            
-        ds, theta_in, phi_in = self.input_coords()
         
         output_sig = self.unit_cell.output_sig(
             self.input_sig, self.phase_mask)
@@ -790,14 +772,8 @@ class transmit_array:
         rad_field = np.empty(nb_points, dtype=np.complex128)
         
         for idx, point in enumerate(points):
-        
-            dp = np.sqrt(np.square(self.x_ordered - point.x) + \
-                         np.square(self.y_ordered - point.y) +\
-                         np.square(point.z))
-            theta_out = np.arccos(point.z / dp)
-            phi_out = np.arccos((point.y - self.y_ordered) / \
-                           np.sqrt(np.square(point.x - self.x_ordered) \
-                           + np.square(point.y - self.y_ordered)))
+            
+            dp, theta_out, phi_out = point.spherical_coords(self.coord_cells)
                     
             field_from_cells = self.unit_cell.field_from_sig(
                     self.output_sig, dp,
