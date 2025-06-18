@@ -37,6 +37,31 @@ class point:
                        (self.y - other_point.y)**2 + \
                        (self.z - other_point.z)**2)
             
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def spherical_coords(self, points):
+        
+        # if only one point is requested, make it a list object so that it can 
+        # be iterable
+        if type(points) == point:
+            points = [points]
+            
+        nb_pts = len(points)
+        r = np.empty(nb_pts)
+        theta = np.empty(nb_pts)
+        phi = np.empty(nb_pts)
+        
+        for idx, pt in enumerate(points):
+            r[idx] = np.sqrt(np.square(self.x - pt.x) + \
+                              np.square(self.y - pt.y)\
+                              + np.square(pt.z))
+            theta[idx] = np.arccos(pt.z / r[idx])
+            phi[idx] = np.arccos((self.y - pt.y) / 
+                np.sqrt(np.square(self.x - pt.x) + \
+                                        + np.square(self.y - pt.y)))
+            
+        return r, theta, phi
+            
 ##############################################################################
 
 class point_grid_2d:
@@ -526,10 +551,28 @@ class simplified_horn_source:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def field(self, theta, phi, power, dist):
-        return np.sqrt(power) * self.wavelgth * \
-            np.exp(-1j * 2. * np.pi * dist /self.wavelgth) * \
-                self.directivity(theta, phi) / 4. / np.pi / dist
+    def field(self, point, power=1.):
+        
+        r, theta, phi = self.position.spherical_coords(point)
+        
+        return [np.sqrt(power) * self.wavelgth * \
+            np.exp(-1j * 2. * np.pi * r /self.wavelgth) * \
+                self.directivity(theta, phi) / 4. / np.pi / r]
+                
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def plot_field(self, plane="xz", side = -1, \
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
+                   plot_grid=False):
+        
+        fc = field_calculator(self)
+        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field_labels(self):
+        return ["Field radiated by a simple horn source model"]
+
 
 ##############################################################################
 
@@ -787,8 +830,10 @@ class desordered_medium:
     
     def __init__(self, source: sourceType, scat_pos=None):
         
+        generate_scat_pos = False
         if scat_pos == None:
             nb_scat = 25
+            generate_scat_pos = True
         else:
             nb_scat = len(scat_pos)
             
@@ -797,6 +842,9 @@ class desordered_medium:
         self.scat_pos = scat_pos
         self.source = source
         self.T = np.zeros(1, dtype=np.complex128)
+        
+        if generate_scat_pos:
+            self.generate_random_scatterers()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -880,6 +928,10 @@ class desordered_medium:
         k = 2.*np.pi / self.wavelgth
         two_sqrt_pi = 2.*np.sqrt(np.pi)
         
+        # if there is only one point, make it iterable by putting it in a list
+        if type(obs_pts) == point:
+            obs_pts = [obs_pts]
+        
         nb_obs_pts = len(obs_pts)
         self.Gout = np.empty((self.nb_scat, nb_obs_pts), dtype=np.complex128)
         
@@ -890,7 +942,6 @@ class desordered_medium:
         # compute input and output Green functions
         self.Gin[0,:] = self.source.field(self.scat_pos)[0]
         for idx, scat in enumerate(self.scat_pos):
-            # self.Gin[0,idx] = self.source.field(scat)
             
             for idx2, obs in enumerate(obs_pts):
                 d_scat_obs = scat.distance_to(obs)
@@ -944,7 +995,7 @@ class field_calculator:
 
     def field_in_plane(self, plane="xz", side = -1, \
                    corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+                   plot_grid=False, dB=False):
         
         # set the axis labels corresponding to the chosen plane
         if plane == "xz":
@@ -986,7 +1037,11 @@ class field_calculator:
         # the overall maximal value
         max_fields = []
         for idx, f in enumerate(fields):
-            fields[idx] = np.abs(f.reshape((nb_side_pts, nb_side_pts)).T)
+            if dB:
+                fields[idx] = 20.*np.log10(
+                    np.abs(f.reshape((nb_side_pts, nb_side_pts)).T))
+            else:
+                fields[idx] = np.abs(f.reshape((nb_side_pts, nb_side_pts)).T)
             inf_mask = np.isinf(fields[idx])
             fields[idx] = np.where(inf_mask, 0., fields[idx])
             max_fields.append(fields[idx].max())
