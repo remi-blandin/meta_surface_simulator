@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
-from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import map_coordinates
+# from scipy.interpolate import RegularGridInterpolator
+# from scipy.ndimage import map_coordinates
 from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
