@@ -584,10 +584,24 @@ class plane_wave:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def field(self, theta, phi, power, dist):
-        return np.sqrt(power) * \
-            np.exp(-1j * 2. * np.pi * self.position.z * np.ones(theta.shape) 
-                   /self.wavelgth)
+    def field(self, points, power=1.):
+        
+        # if only one point is requested, make it a list object so that it is 
+        # iterable
+        if type(points) == point:
+            points = [points]
+            
+        nb_points = len(points)
+            
+        z_pt = np.empty(nb_points)
+        for idx, pt in enumerate(points):
+            z_pt[idx] = pt.z
+        
+        #FIXME: here the wave is travelling in the z direction, a propagation 
+        # vector could be added to simulate other directions
+        return [np.sqrt(power) * \
+            np.exp(-1j * 2. * np.pi * (z_pt - self.position.z) * np.ones(nb_points) 
+                   /self.wavelgth)]
                 
 ##############################################################################
 

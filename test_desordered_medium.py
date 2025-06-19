@@ -12,6 +12,9 @@ dist_src = 0.5
 n_cells_x = 20
 n_cells_y = 20
 
+source_type = "plane_wave"
+# source_type = "horn"
+
 # phase_mask = "devided_in_half"
 # phase_mask = "random"
 
@@ -29,8 +32,11 @@ quant = False
 # Initialise metasuurface
 
 ucell = simple_unit_cell(unit_cell_side_lgth)
-source = simplified_horn_source(5, position=point(0.,0.,dist_src))
-# source = plane_wave(position=point(0.,0.,dist_src))
+
+if source_type == "horn":
+    source = simplified_horn_source(5, position=point(0.,0.,dist_src))
+elif source_type == "plane_wave":
+    source = plane_wave(position=point(0.,0.,dist_src))
 
 ta = transmit_array(n_cells_x, n_cells_y, ucell, source)
 
