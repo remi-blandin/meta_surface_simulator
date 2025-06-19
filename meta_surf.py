@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from matplotlib.widgets import Slider
 import csv
-# from scipy.interpolate import RegularGridInterpolator
-# from scipy.ndimage import map_coordinates
 from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
@@ -132,7 +130,7 @@ class point_grid_2d:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show()
+        plt.show() 
         
 ##############################################################################
 
@@ -906,7 +904,7 @@ class desordered_medium:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show()
+        plt.show() 
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -1083,5 +1081,5 @@ class field_calculator:
             
         # slider.on_changed(update)
         
-        plt.show()
+        plt.show() 
         

@@ -2,10 +2,10 @@ from meta_surf import *
 import numpy as np
 import os
 
-obs_pt = point(0.,0.,1.)
+obs_pt = point(0.,0.,0.5)
 
 # create a horn source
-horn = simplified_horn_source(position=point(0.,0.,0.))
+horn = simplified_horn_source(position=point(0.,0.,-0.5))
 horn.plot_field(plane="xz", side=1.)
 
 field_1m = horn.field(obs_pt)
