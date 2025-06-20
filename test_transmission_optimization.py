@@ -20,10 +20,10 @@ file_name = "scatterers_position.csv"
 if os.path.exists(file_name):
     dm.create_scat_from_csv(file_name)
 else:
-    dm.generate_random_scatterers(25)
+    dm.generate_random_scatterers(50)
     dm.save_scat_pos(file_name)
 
-dm.plot_scatterers()
+fig, ax = dm.plot_scatterers()
 field_1m_dm = dm.field(obs_pt)
 print("Field from horn + desordered medium: " + str(np.abs(field_1m_dm[2])))
 
@@ -32,6 +32,7 @@ dm.plot_field(plane="yz", side=1.)
 # add a transmit array
 uc = simple_unit_cell()
 ta = transmit_array(10, 10, uc, horn)
+ta.plot(fig, ax)
 dm = desordered_medium(ta)
 dm.create_scat_from_csv(file_name)
 field_1m_dm2 = dm.field(obs_pt)

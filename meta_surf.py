@@ -646,6 +646,38 @@ class transmit_array:
         self.output_signals()
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot(self, fig=None, ax=None):
+        
+        dx = self.unit_cell.side_length / 2.
+        translate_to_corners = np.array([
+            [dx, dx, 0.],
+            [dx, -dx, 0.],
+            [-dx, -dx, 0.],
+            [-dx, dx, 0.],
+            [dx, dx, 0.]
+            ])
+        
+        if (fig == None) or (ax == None):        
+            fig = plt.figure()    
+            ax = fig.add_subplot(111, projection='3d')
+        
+        for pt in self.coord_cells:
+            cell_corners = np.repeat(np.array([[pt.x, pt.y, pt.z]]), 5, 0)
+        
+            cell_corners = cell_corners + translate_to_corners
+
+            ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2])
+        
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        plt.show() 
+        
+        return fig, ax
+        
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_phase_mask(self, value):
         self.phase_mask.fill(value)
@@ -895,9 +927,12 @@ class desordered_medium:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_scatterers(self):
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+    def plot_scatterers(self, fig=None, ax=None):
+        
+        if (fig == None) or (ax == None):        
+            fig = plt.figure()    
+            ax = fig.add_subplot(111, projection='3d')
+            
         ax.scatter([point.x for point in self.scat_pos],
             [point.y for point in self.scat_pos], 
             [point.z for point in self.scat_pos])
@@ -905,6 +940,8 @@ class desordered_medium:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         plt.show() 
+        
+        return fig, ax
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
