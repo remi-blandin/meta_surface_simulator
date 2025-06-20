@@ -680,7 +680,7 @@ class transmit_array:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def set_phase_mask(self, value):
-        self.phase_mask.fill(value)
+        self.phase_mask = value
         
         # update input and ouput signals 
         self.input_signals()
@@ -1098,25 +1098,25 @@ class field_calculator:
                            shrink=0.5)
         cbar.set_label('|E|')
         
-        # # create a slider to adjust the maximal color value 
-        # ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
-        # slider = Slider(
-        #     ax=ax_slider,
-        #     label='Max Color Value',
-        #     valmin=0.,
-        #     valmax=max_value,
-        #     valinit=max_value,
-        #     valstep=0.01
-        # )
+        # create a slider to adjust the maximal color value 
+        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
+        slider = Slider(
+            ax=ax_slider,
+            label='Max Color Value',
+            valmin=0.,
+            valmax=max_value,
+            valinit=max_value,
+            valstep=0.01
+        )
         
-        # # Function to update vmax
-        # def update(val):
-        #     for img in images:
-        #         img.set_clim(vmin=0, vmax=slider.val)
-        #     cbar.update_normal(images[0])
-        #     fig.canvas.draw_idle()
+        # Function to update vmax
+        def update(val):
+            for img in images:
+                img.set_clim(vmin=0, vmax=slider.val)
+            cbar.update_normal(images[0])
+            fig.canvas.draw_idle()
             
-        # slider.on_changed(update)
+        slider.on_changed(update)
         
         plt.show() 
         
