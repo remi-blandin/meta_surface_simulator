@@ -942,6 +942,12 @@ class desordered_medium:
         plt.show() 
         
         return fig, ax
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_polarizability(self, polarizability):
+        
+        self.polarizability = polarizability * np.ones(self.nb_scat)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
