@@ -600,6 +600,20 @@ class plane_wave:
         return [np.sqrt(power) * \
             np.exp(-1j * 2. * np.pi * (z_pt - self.position.z) * np.ones(nb_points) 
                    /self.wavelgth)]
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, plane="xz", side = -1, \
+                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
+                   plot_grid=False):
+        
+        fc = field_calculator(self)
+        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field_labels(self):
+        return ["Plane wave"]
                 
 ##############################################################################
 
