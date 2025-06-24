@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 
 # obs_pt = [point(0.,0.15,0.5), point(0.,-0.15,0.5) ]
 # obs_pt = [point(0.,0.15,0.2), point(0.,-0.15,0.3) ]
-# obs_pt = point(0.,0.,0.5)
+obs_pt = point(0.,0.,0.5)
 # obs_pt = [point(0.,-0.02,0.5), point(0.,0.02,0.5), point(0.,-0.02,0.48), point(0.,0.02,0.48)]
-obs_pt = [point(0.,0.,0.5), point(0.,0.,0.25) ]
+# obs_pt = [point(0.,0.,0.5), point(0.,0.,0.25) ]
 
 
 side_dm = 0.2
 side_field_view = 0.5
-renew_scat = False
+renew_scat = True
 nb_cells_side = 14
 nb_scat = 100
 
@@ -42,6 +42,17 @@ else:
     dm.generate_random_scatterers(nb_scat,
       bounding_box = [-side_dm, side_dm, -side_dm, side_dm, 0.05, 0.1])
     dm.save_scat_pos(file_name)
+    
+# get distances between the scatterers
+distances = np.empty(int((nb_scat * (nb_scat - 1))/2))
+idx = 0
+for i in range(0, nb_scat):
+    for j in range(i + 1, nb_scat):
+        distances[idx] = dm.scat_pos[i].distance_to(
+                dm.scat_pos[j]
+            )
+        idx =idx + 1
+plt.plot(distances)
 
 # fig, ax = dm.plot_scatterers()
 # field_1m_dm = dm.field(obs_pt)
@@ -59,7 +70,7 @@ ta = transmit_array(nb_cells_side, nb_cells_side, uc, horn)
 
 dm = desordered_medium(ta)
 dm.create_scat_from_csv(file_name)
-dm.set_polarizability(0.001)
+dm.set_polarizability(1.)
 # dm.source.set_random_phase_mask()
 
 field_1m_dm2 = dm.field(obs_pt)
@@ -90,9 +101,9 @@ for r in range(0, nb_repeat):
         print("iteration " + str(idx + 1) + ": " 
               + str(field_abs[r*nb_cells + idx]) )
         
-        # if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
-        if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
-        (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
+        if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
+        # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
+        # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
             phase_states[idx] = 0
         else:
             field_obs = field

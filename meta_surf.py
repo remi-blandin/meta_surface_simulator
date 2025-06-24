@@ -874,28 +874,73 @@ class desordered_medium:
         self.Gdd = np.zeros((nb_scat, nb_scat), dtype=np.complex128)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def min_dist_to_scats(self, querry_pt, idx_stop = None):
+        
+        if idx_stop == None:
+            idx_stop = self.nb_scat
+            
+        min_dist = querry_pt.distance_to(self.scat_pos[0])
+        
+        for idx in range(1, idx_stop):
+            
+            dist = querry_pt.distance_to(self.scat_pos[idx])
+            
+            if dist < min_dist:
+                min_dist = dist
+                
+        return min_dist
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def generate_random_scatterers(self, nb_scat=None, 
-            bounding_box = [-0.2, 0.2, -0.2, 0.2, 0.05, 0.25]):
+            bounding_box = [-0.2, 0.2, -0.2, 0.2, 0.05, 0.25], 
+            min_dist = None):
         
         if nb_scat == None:
             nb_scat = self.nb_scat
         else:
             self.initialize(nb_scat)
             
-        self.scat_pos = [None] * nb_scat
+        if min_dist == None:
+            min_dist = self.wavelgth / 2.
+            
+        def generate_rand_pt(delta_x, delta_y, delta_z, x_min, y_min, z_min):
+
+            random_coordinates = np.random.rand(nb_scat, 3)
+            random_pt = point(
+                random_coordinates[0, 0] * delta_x + x_min,
+                random_coordinates[0, 1] * delta_y + y_min,
+                random_coordinates[0, 2] * delta_z + z_min,
+                )
+            
+            return random_pt
+            
+        self.scat_pos = [point] * nb_scat
         
         delta_x = bounding_box[1] - bounding_box[0]
         delta_y = bounding_box[3] - bounding_box[2]
         delta_z = bounding_box[5] - bounding_box[4]
-        random_coordinates = np.random.rand(nb_scat, 3)
+        x_min = bounding_box[0]
+        y_min = bounding_box[2]
+        z_min = bounding_box[4]
+
+        # generate a first random point
+        self.scat_pos[0] = generate_rand_pt(delta_x, delta_y, delta_z,
+                                            x_min, y_min, z_min)
         
-        for idx in range(nb_scat):
-            self.scat_pos[idx] = point(
-                random_coordinates[idx, 0] * delta_x + bounding_box[0],
-                random_coordinates[idx, 1] * delta_y + bounding_box[2],
-                random_coordinates[idx, 2] * delta_z + bounding_box[4],
-                )
+        for idx in range(1, nb_scat):
+            
+            rand_pt = generate_rand_pt(delta_x, delta_y, delta_z,
+                                                x_min, y_min, z_min)
+            
+            # generate points until they satisfy the minimal distance criterion
+            while self.min_dist_to_scats(rand_pt, idx) < min_dist:
+                
+                rand_pt = generate_rand_pt(delta_x, delta_y, delta_z,
+                                                    x_min, y_min, z_min)
+                
+            self.scat_pos[idx] = rand_pt
             
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
