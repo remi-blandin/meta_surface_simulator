@@ -7,10 +7,12 @@ import csv
 from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
+from dataclasses import dataclass
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "plane_wave", "transmit_array", 
-           "desordered_medium", "radiation_pattern", "field_calculator"]
+           "desordered_medium", "radiation_pattern", "field_calculator",
+           "plot_params"]
 
 ##############################################################################
 
@@ -63,48 +65,46 @@ class point:
 class point_grid_2d:
     
     """A 2d squarred grid of cartesian points"""
-    
-    def __init__(self, orientation : str, side_length,\
-                 bottom_corner= point(0., 0., 0.) \
-                 , nb_points_per_side=50):
         
-        self.bottom_corner = bottom_corner
-        self.nb_pts = nb_points_per_side * nb_points_per_side
+    def __init__(self, params : 'plot_params'):
+        
+        self.bottom_corner = params.corner_pt
+        self.nb_pts = params.nb_side_pts * params.nb_side_pts
         self.points = [None] * self.nb_pts
         self.bounding_box = [None] * 4
         
-        side_coord = np.linspace(0., side_length, nb_points_per_side)
+        side_coord = np.linspace(0., params.side, params.nb_side_pts)
         
         idx = 0
-        for i in range(0, nb_points_per_side):
-            for j in range(0, nb_points_per_side):
+        for i in range(0, params.nb_side_pts):
+            for j in range(0, params.nb_side_pts):
                 
-                if orientation == "xy":
-                    self.points[idx] = point(side_coord[i] - bottom_corner.x,\
-                                             side_coord[j] - bottom_corner.y,\
-                                             bottom_corner.z)
-                    self.bounding_box = [- bottom_corner.x, \
-                                         side_length - bottom_corner.x, \
-                                         - bottom_corner.y, \
-                                         side_length - bottom_corner.y]
+                if params.plane == "xy":
+                    self.points[idx] = point(side_coord[i] - params.corner_pt.x,\
+                                             side_coord[j] - params.corner_pt.y,\
+                                             params.corner_pt.z)
+                    self.bounding_box = [- params.corner_pt.x, \
+                                         params.side - params.corner_pt.x, \
+                                         - params.corner_pt.y, \
+                                         params.side - params.corner_pt.y]
                         
-                elif orientation == "xz":
-                    self.points[idx] = point(side_coord[i] - bottom_corner.x,\
-                                             bottom_corner.y,\
-                                             side_coord[j] - bottom_corner.z)
-                    self.bounding_box = [- bottom_corner.x, \
-                                         side_length - bottom_corner.x, \
-                                         - bottom_corner.z, \
-                                         side_length - bottom_corner.z]
+                elif params.plane == "xz":
+                    self.points[idx] = point(side_coord[i] - params.corner_pt.x,\
+                                             params.corner_pt.y,\
+                                             side_coord[j] - params.corner_pt.z)
+                    self.bounding_box = [- params.corner_pt.x, \
+                                         params.side - params.corner_pt.x, \
+                                         - params.corner_pt.z, \
+                                         params.side - params.corner_pt.z]
                         
-                elif orientation == "yz":
-                    self.points[idx] = point(bottom_corner.x, \
-                                             side_coord[i] - bottom_corner.y,\
-                                             side_coord[j] - bottom_corner.z)
-                    self.bounding_box = [- bottom_corner.y, \
-                                         side_length - bottom_corner.y, \
-                                         - bottom_corner.z, \
-                                         side_length - bottom_corner.z]
+                elif params.plane == "yz":
+                    self.points[idx] = point(params.corner_pt.x, \
+                                             side_coord[i] - params.corner_pt.y,\
+                                             side_coord[j] - params.corner_pt.z)
+                    self.bounding_box = [- params.corner_pt.y, \
+                                         params.side - params.corner_pt.y, \
+                                         - params.corner_pt.z, \
+                                         params.side - params.corner_pt.z]
                 idx = idx + 1
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -518,12 +518,10 @@ class unit_cell:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+    def plot_field(self, params : 'plot_params'):
         
         fc = field_calculator(self)
-        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -557,12 +555,10 @@ class simplified_horn_source:
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+    def plot_field(self, params : 'plot_params'):
         
         fc = field_calculator(self)
-        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -603,12 +599,10 @@ class plane_wave:
             
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+    def plot_field(self, params : 'plot_params'):
         
         fc = field_calculator(self)
-        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -846,12 +840,10 @@ class transmit_array:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+    def plot_field(self, params : 'plot_params'):
         
         fc = field_calculator(self)
-        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        fc.field_in_plane(params)
                 
 ##############################################################################
 
@@ -1058,17 +1050,27 @@ class desordered_medium:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False):
+    def plot_field(self, params : 'plot_params'):
         
         fc = field_calculator(self)
-        fc.field_in_plane(plane, side, corner_pt, nb_side_pts, plot_grid)
+        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def field_labels(self):
         return ["Direct field", "Scattered field", "Total field"]
+
+##############################################################################
+
+@dataclass
+class plot_params:
+    
+    plane:          str = "xz"
+    side:           float = None
+    corner_pt:      point = None
+    nb_side_pts:    int = 50
+    plot_grid:      bool = False
+    dB:             bool = True
 
 ##############################################################################
 
@@ -1081,39 +1083,41 @@ class field_calculator:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def field_in_plane(self, plane="xz", side = -1, \
-                   corner_pt = point(1.e9,0.,0.), nb_side_pts=50,
-                   plot_grid=False, dB=False):
+    def field_in_plane(self, params : 'plot_params'):
+        
         
         # set the axis labels corresponding to the chosen plane
-        if plane == "xz":
+        if params.plane == "xz":
             xlabel = "x (m)"
             ylabel = "z (m)"
             
-        elif plane == "yz":
+        elif params.plane == "yz":
             xlabel = "y (m)"
             ylabel = "z (m)"
             
-        elif plane == "xy":
+        elif params.plane == "xy":
             xlabel = "x (m)"
             ylabel = "y (m)"
         
         # set the grid parameters
-        if side == -1:
-            side = 10 * self.source.wavelgth
-        if corner_pt.x == 1.e9:
-            if plane == "xz":
-                corner_pt = point(side/2., 0., 0.)
+        if params.side == None:
+            params.side = 10 * self.source.wavelgth
+        if params.corner_pt == None:
+            if params.plane == "xz":
+                params.corner_pt = point(params.side/2., 0., 0.)
                 
-            elif plane == "yz":
-                corner_pt = point(0., side/2., 0.)
+            elif params.plane == "yz":
+                params.corner_pt = point(0., params.side/2., 0.)
                 
-            elif plane == "xy":
-                corner_pt = point(side/2, side/2., side/2)
+            elif params.plane == "xy":
+                params.corner_pt = point(params.side/2, 
+                                         params.side/2., 
+                                         params.side/2)
             
-        g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
+        # g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
+        g = point_grid_2d(params)
         
-        if plot_grid:
+        if params.plot_grid:
             g.plot()
             
         # compute field on the grid
@@ -1125,11 +1129,11 @@ class field_calculator:
         # the overall maximal value
         max_fields = []
         for idx, f in enumerate(fields):
-            if dB:
+            if params.dB:
                 fields[idx] = 20.*np.log10(
-                    np.abs(f.reshape((nb_side_pts, nb_side_pts)).T))
+                    np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T))
             else:
-                fields[idx] = np.abs(f.reshape((nb_side_pts, nb_side_pts)).T)
+                fields[idx] = np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T)
             inf_mask = np.isinf(fields[idx])
             fields[idx] = np.where(inf_mask, 0., fields[idx])
             max_fields.append(fields[idx].max())
@@ -1145,7 +1149,7 @@ class field_calculator:
         if nb_fields == 1:
             axes = [axes]
         
-        fig.suptitle("Plane " + plane)
+        fig.suptitle("Plane " + params.plane)
         
         images = []
         for f, ax, label in zip(fields, axes, field_labels):

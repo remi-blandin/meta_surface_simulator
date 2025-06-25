@@ -17,9 +17,9 @@ nb_scat = 100
 
 # points to optimize
 
-# obs_pt = [point(0.,0.15,0.5), point(0.,-0.15,0.5) ]
+obs_pt = [point(0.,0.15,0.5), point(0.,-0.15,0.5) ]
 # obs_pt = [point(0.,0.15,0.2), point(0.,-0.15,0.3) ]
-obs_pt = point(0.,0.,0.5)
+# obs_pt = point(0.,0.,0.5)
 # obs_pt = [point(0.,-0.02,0.5), point(0.,0.02,0.5), point(0.,-0.02,0.48), point(0.,0.02,0.48)]
 # obs_pt = [point(0.,0.,0.5), point(0.,0.,0.25) ]
 
@@ -30,8 +30,9 @@ if source_type == "horn":
     source = simplified_horn_source(position=point(0.,0.,-0.5))
 elif source_type == "plane_wave":
     source = plane_wave()
-    
-source.plot_field(plane="xz", side=side_field_view)
+
+pp = plot_params(plane="xz", side=side_field_view)
+source.plot_field(pp)
 
 field_1m = source.field(obs_pt)
 
@@ -67,7 +68,7 @@ plt.plot(distances)
 # print("Field from source: " + str(np.abs(field_1m_dm[0])))
 # print("Field from source + desordered medium: " + str(np.abs(field_1m_dm[2])))
 
-# dm.plot_field(plane="yz", side=side_field_view)
+# dm.plot_field(pp)
 
 #-----------------------------------------------------------------------------#
 # add a transmit array
@@ -86,7 +87,9 @@ print("Field from source + transmit array: " + str(np.abs(field_1m_dm2[0]).sum()
 print("Field from source + transmit array + desordered medium: " 
       + str(np.abs(field_1m_dm2[2]).sum()))
 
-dm.plot_field(plane="yz", side=side_field_view)
+
+pp = plot_params(plane="yz", side=side_field_view)
+dm.plot_field(pp)
 
 #-----------------------------------------------------------------------------#
 # optimize a transmit array
@@ -117,10 +120,10 @@ for r in range(0, nb_repeat):
             field_obs = field
             
         # if idx % 20 == 00:
-        #     dm.plot_field(plane="yz", side=side_field_view)
+        #     dm.plot_field(pp)
     
 plt.figure()
 plt.plot(field_abs)
         
 dm.source.plot_phase_mask()
-dm.plot_field(plane="yz", side=side_field_view)
+dm.plot_field(pp)
