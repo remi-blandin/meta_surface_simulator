@@ -11,15 +11,15 @@ source_type = "horn"
 side_dm = 0.2
 side_field_view = 0.5
 renew_scat = False
-nb_cells_side = 14
+nb_cells_side = 10
 nb_scat = 100
-
+polarizability = 1j
 
 # points to optimize
 
-obs_pt = [point(0.,0.15,0.5), point(0.,-0.15,0.5) ]
+# obs_pt = [point(0.,0.15,0.5), point(0.,-0.15,0.5) ]
 # obs_pt = [point(0.,0.15,0.2), point(0.,-0.15,0.3) ]
-# obs_pt = point(0.,0.,0.5)
+obs_pt = point(0.,0.,0.5)
 # obs_pt = [point(0.,-0.02,0.5), point(0.,0.02,0.5), point(0.,-0.02,0.48), point(0.,0.02,0.48)]
 # obs_pt = [point(0.,0.,0.5), point(0.,0.,0.25) ]
 
@@ -63,7 +63,7 @@ for i in range(0, nb_scat):
         idx =idx + 1
 plt.plot(distances)
 
-# fig, ax = dm.plot_scatterers()
+fig, ax = dm.plot_scatterers()
 # field_1m_dm = dm.field(obs_pt)
 # print("Field from source: " + str(np.abs(field_1m_dm[0])))
 # print("Field from source + desordered medium: " + str(np.abs(field_1m_dm[2])))
@@ -75,11 +75,11 @@ plt.plot(distances)
 
 uc = simple_unit_cell()
 ta = transmit_array(nb_cells_side, nb_cells_side, uc, source)
-# ta.plot(fig, ax)
+ta.plot(fig, ax)
 
 dm = desordered_medium(ta)
 dm.create_scat_from_csv(file_name)
-dm.set_polarizability(1.)
+dm.set_polarizability(polarizability)
 # dm.source.set_random_phase_mask()
 
 field_1m_dm2 = dm.field(obs_pt)
@@ -88,7 +88,7 @@ print("Field from source + transmit array + desordered medium: "
       + str(np.abs(field_1m_dm2[2]).sum()))
 
 
-pp = plot_params(plane="yz", side=side_field_view)
+pp = plot_params(plane="yz", side=side_field_view, dB=True)
 dm.plot_field(pp)
 
 #-----------------------------------------------------------------------------#
@@ -127,3 +127,8 @@ plt.plot(field_abs)
         
 dm.source.plot_phase_mask()
 dm.plot_field(pp)
+
+field_1m_dm2 = dm.field(obs_pt)
+print("Field from source + transmit array: " + str(np.abs(field_1m_dm2[0]).sum()))
+print("Field from source + transmit array + desordered medium: " 
+      + str(np.abs(field_1m_dm2[2]).sum()))

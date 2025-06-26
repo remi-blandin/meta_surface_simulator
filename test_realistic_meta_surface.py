@@ -6,7 +6,6 @@ from scipy.constants import c  # Speed of light in vacuum
 
 freq = 5.2e+9
 wavelgth = c / freq
-# wavelgth = 0.06
 
 #----------------------------------------------------------------------------#
 # Create a realistic unit cell

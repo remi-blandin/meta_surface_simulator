@@ -1070,7 +1070,7 @@ class plot_params:
     corner_pt:      point = None
     nb_side_pts:    int = 50
     plot_grid:      bool = False
-    dB:             bool = True
+    dB:             bool = False
 
 ##############################################################################
 
@@ -1114,7 +1114,6 @@ class field_calculator:
                                          params.side/2., 
                                          params.side/2)
             
-        # g = point_grid_2d(plane, side, corner_pt, nb_side_pts)
         g = point_grid_2d(params)
         
         if params.plot_grid:
@@ -1126,23 +1125,36 @@ class field_calculator:
         field_labels = self.source.field_labels()
         
         # reshape the field data so that they correspond to the grid and get
-        # the overall maximal value
+        # the overall minimal and maximal value
+        min_fields = []
         max_fields = []
         for idx, f in enumerate(fields):
+            
             if params.dB:
                 fields[idx] = 20.*np.log10(
                     np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T))
             else:
                 fields[idx] = np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T)
+            
+            # remove infinite values
             inf_mask = np.isinf(fields[idx])
             fields[idx] = np.where(inf_mask, 0., fields[idx])
+            
+            # remove nans
+            nan_mask = np.isnan(fields[idx])
+            fields[idx] = np.where(nan_mask, 0., fields[idx])
+            
+            min_fields.append(fields[idx].min())
             max_fields.append(fields[idx].max())
+            
+        min_value = np.min(min_fields)
         max_value = np.max(max_fields)
         
         # Prevent garbage collection
-        global slider, fig
+        global slider_min, slider_max, fig
         
         fig, axes = plt.subplots(1, nb_fields)
+        plt.subplots_adjust(bottom=0.25)
         
         # if there is only one plot, make the axes iterrable so that the loops
         # can work
@@ -1154,7 +1166,7 @@ class field_calculator:
         images = []
         for f, ax, label in zip(fields, axes, field_labels):
             images.append(
-                ax.imshow(np.abs(f), vmax=max_value, 
+                ax.imshow(f, vmax=max_value, 
                           extent=g.bounding_box, origin='lower')
                 )
             ax.set_xlabel(xlabel)
@@ -1165,27 +1177,50 @@ class field_calculator:
                            location='right', 
                            pad=0.02, 
                            shrink=0.5)
-        cbar.set_label('|E|')
+        
+        if params.dB:
+            cbar.set_label('|E| (dB)')
+        else:
+            cbar.set_label('|E|')
         
         # create a slider to adjust the maximal color value 
-        ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
-        slider = Slider(
-            ax=ax_slider,
+        ax_slider_min = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
+        slider_min = Slider(
+            ax=ax_slider_min,
+            label='Min Color Value',
+            valmin=min_value,
+            valmax=max_value,
+            valinit=min_value,
+            valstep= (max_value - min_value) / 100
+        )
+        
+        # create a slider to adjust the maximal color value 
+        ax_slider_max = plt.axes([0.2, 0.05, 0.6, 0.03])  # [left, bottom, width, height]
+        slider_max = Slider(
+            ax=ax_slider_max,
             label='Max Color Value',
-            valmin=0.,
+            valmin=min_value,
             valmax=max_value,
             valinit=max_value,
-            valstep=0.01
+            valstep= (max_value - min_value) / 100
         )
         
         # Function to update vmax
-        def update(val):
+        def update_min(val):
             for img in images:
-                img.set_clim(vmin=0, vmax=slider.val)
+                img.set_clim(vmin=slider_min.val)
+            cbar.update_normal(images[0])
+            fig.canvas.draw_idle()
+        
+        # Function to update vmax
+        def update_max(val):
+            for img in images:
+                img.set_clim(vmax=slider_max.val)
             cbar.update_normal(images[0])
             fig.canvas.draw_idle()
             
-        slider.on_changed(update)
+        slider_min.on_changed(update_min)
+        slider_max.on_changed(update_max)
         
         plt.show() 
         
