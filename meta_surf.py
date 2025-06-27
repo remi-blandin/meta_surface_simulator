@@ -767,11 +767,6 @@ class transmit_array:
         # update input and ouput signals 
         self.input_signals()
         self.output_signals()
-                
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-        
-    def get_phase_mask(self):
-        return self.phase_mask.reshape((self.n_cell_x, self.n_cell_y))
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
