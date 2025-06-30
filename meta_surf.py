@@ -7,12 +7,10 @@ import csv
 from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
-from dataclasses import dataclass
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "plane_wave", "transmit_array", 
-           "desordered_medium", "radiation_pattern",
-           "plot_params"]
+           "desordered_medium", "radiation_pattern"]
 
 ##############################################################################
 
@@ -26,48 +24,56 @@ class radiating_object:
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot_field(self, params = None):
+    def plot_field(self, **kwargs):
         
-        if params == None:
-            params = plot_params()
+        defaults = {
+            'plane': "xz",
+            'side': None,
+            'corner_pt': None,
+            'nb_side_pts': 50,
+            'plot_grid': False,
+            'dB': False
+            }
+        
+        params = {**defaults, **kwargs}
         
         #================================================#
         # SET PLOT PARAMETERS
         
         # set the axis labels corresponding to the chosen plane
-        if params.plane == "xz":
+        if params['plane'] == "xz":
             xlabel = "x (m)"
             ylabel = "z (m)"
             
-        elif params.plane == "yz":
+        elif params['plane'] == "yz":
             xlabel = "y (m)"
             ylabel = "z (m)"
             
-        elif params.plane == "xy":
+        elif params['plane'] == "xy":
             xlabel = "x (m)"
             ylabel = "y (m)"
         
         # set the grid parameters
-        if params.side == None:
-            params.side = 10 * self.source.wavelgth
-        if params.corner_pt == None:
-            if params.plane == "xz":
-                params.corner_pt = point(params.side/2., 0., 0.)
+        if params['side'] == None:
+            params['side'] = 10 * self.source.wavelgth
+        if params['corner_pt'] == None:
+            if params['plane'] == "xz":
+                params['corner_pt'] = point(params['side']/2., 0., 0.)
                 
-            elif params.plane == "yz":
-                params.corner_pt = point(0., params.side/2., 0.)
+            elif params['plane'] == "yz":
+                params['corner_pt'] = point(0., params['side']/2., 0.)
                 
-            elif params.plane == "xy":
-                params.corner_pt = point(params.side/2, 
-                                         params.side/2., 
-                                         params.side/2)
+            elif params['plane'] == "xy":
+                params['corner_pt'] = point(params['side']/2, 
+                                         params['side']/2., 
+                                         params['side']/2)
             
         #================================================#
         # GENERATE POINT GRID
         
-        g = point_grid_2d(params)
+        g = point_grid_2d(**params)
         
-        if params.plot_grid:
+        if params['plot_grid']:
             g.plot()
             
         #================================================#
@@ -84,11 +90,11 @@ class radiating_object:
         max_fields = []
         for idx, f in enumerate(fields):
             
-            if params.dB:
+            if params['dB']:
                 fields[idx] = 20.*np.log10(
-                    np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T))
+                    np.abs(f.reshape((params['nb_side_pts'], params['nb_side_pts'])).T))
             else:
-                fields[idx] = np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T)
+                fields[idx] = np.abs(f.reshape((params['nb_side_pts'], params['nb_side_pts'])).T)
             
             # remove infinite values
             inf_mask = np.isinf(fields[idx])
@@ -116,7 +122,7 @@ class radiating_object:
         if nb_fields == 1:
             axes = [axes]
         
-        fig.suptitle("Plane " + params.plane)
+        fig.suptitle("Plane " + params['plane'])
         
         images = []
         for f, ax, label in zip(fields, axes, field_labels):
@@ -133,7 +139,7 @@ class radiating_object:
                            pad=0.02, 
                            shrink=0.5)
         
-        if params.dB:
+        if params['dB']:
             cbar.set_label('|E| (dB)')
         else:
             cbar.set_label('|E|')
@@ -241,45 +247,56 @@ class point_grid_2d:
     
     """A 2d squarred grid of cartesian points"""
         
-    def __init__(self, params : 'plot_params'):
+    def __init__(self, **kwargs):
         
-        self.bottom_corner = params.corner_pt
-        self.nb_pts = params.nb_side_pts * params.nb_side_pts
+        defaults = {
+            'plane': "xz",
+            'side': 0.5,
+            'corner_pt': point(0.,0.,0.),
+            'nb_side_pts': 50,
+            'plot_grid': False,
+            'dB': False
+            }
+        
+        params = {**defaults, **kwargs}
+        
+        self.bottom_corner = params['corner_pt']
+        self.nb_pts = params['nb_side_pts'] * params['nb_side_pts']
         self.points = [None] * self.nb_pts
         self.bounding_box = [None] * 4
         
-        side_coord = np.linspace(0., params.side, params.nb_side_pts)
+        side_coord = np.linspace(0., params['side'], params['nb_side_pts'])
         
         idx = 0
-        for i in range(0, params.nb_side_pts):
-            for j in range(0, params.nb_side_pts):
+        for i in range(0, params['nb_side_pts']):
+            for j in range(0, params['nb_side_pts']):
                 
-                if params.plane == "xy":
-                    self.points[idx] = point(side_coord[i] - params.corner_pt.x,\
-                                             side_coord[j] - params.corner_pt.y,\
-                                             params.corner_pt.z)
-                    self.bounding_box = [- params.corner_pt.x, \
-                                         params.side - params.corner_pt.x, \
-                                         - params.corner_pt.y, \
-                                         params.side - params.corner_pt.y]
+                if params['plane'] == "xy":
+                    self.points[idx] = point(side_coord[i] - params['corner_pt'].x,\
+                                             side_coord[j] - params['corner_pt'].y,\
+                                             params['corner_pt'].z)
+                    self.bounding_box = [- params['corner_pt'].x, \
+                                         params['side'] - params['corner_pt'].x, \
+                                         - params['corner_pt'].y, \
+                                         params['side'] - params['corner_pt'].y]
                         
-                elif params.plane == "xz":
-                    self.points[idx] = point(side_coord[i] - params.corner_pt.x,\
-                                             params.corner_pt.y,\
-                                             side_coord[j] - params.corner_pt.z)
-                    self.bounding_box = [- params.corner_pt.x, \
-                                         params.side - params.corner_pt.x, \
-                                         - params.corner_pt.z, \
-                                         params.side - params.corner_pt.z]
+                elif params['plane'] == "xz":
+                    self.points[idx] = point(side_coord[i] - params['corner_pt'].x,\
+                                             params['corner_pt'].y,\
+                                             side_coord[j] - params['corner_pt'].z)
+                    self.bounding_box = [- params['corner_pt'].x, \
+                                         params['side'] - params['corner_pt'].x, \
+                                         - params['corner_pt'].z, \
+                                         params['side'] - params['corner_pt'].z]
                         
-                elif params.plane == "yz":
-                    self.points[idx] = point(params.corner_pt.x, \
-                                             side_coord[i] - params.corner_pt.y,\
-                                             side_coord[j] - params.corner_pt.z)
-                    self.bounding_box = [- params.corner_pt.y, \
-                                         params.side - params.corner_pt.y, \
-                                         - params.corner_pt.z, \
-                                         params.side - params.corner_pt.z]
+                elif params['plane'] == "yz":
+                    self.points[idx] = point(params['corner_pt'].x, \
+                                             side_coord[i] - params['corner_pt'].y,\
+                                             side_coord[j] - params['corner_pt'].z)
+                    self.bounding_box = [- params['corner_pt'].y, \
+                                         params['side'] - params['corner_pt'].y, \
+                                         - params['corner_pt'].z, \
+                                         params['side'] - params['corner_pt'].z]
                 idx = idx + 1
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -1195,15 +1212,3 @@ class desordered_medium(radiating_object):
     
     def field_labels(self):
         return ["Direct field", "Scattered field", "Total field"]
-
-##############################################################################
-
-@dataclass
-class plot_params:
-    
-    plane:          str = "xz"
-    side:           float = None
-    corner_pt:      point = None
-    nb_side_pts:    int = 50
-    plot_grid:      bool = False
-    dB:             bool = False
