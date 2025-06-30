@@ -31,8 +31,7 @@ if source_type == "horn":
 elif source_type == "plane_wave":
     source = plane_wave()
 
-pp = plot_params(plane="xz", side=side_field_view)
-source.plot_field(pp)
+source.plot_field(plane="xz", side=side_field_view)
 
 field_1m = source.field(obs_pt)
 
@@ -68,7 +67,7 @@ fig, ax = dm.plot_scatterers()
 # print("Field from source: " + str(np.abs(field_1m_dm[0])))
 # print("Field from source + desordered medium: " + str(np.abs(field_1m_dm[2])))
 
-# dm.plot_field(pp)
+# dm.plot_field(plane="xz", side=side_field_view)
 
 #-----------------------------------------------------------------------------#
 # add a transmit array
@@ -88,8 +87,7 @@ print("Field from source + transmit array + desordered medium: "
       + str(np.abs(field_1m_dm2[2]).sum()))
 
 
-pp = plot_params(plane="yz", side=side_field_view, dB=True)
-dm.plot_field(pp)
+dm.plot_field(plane="yz", side=side_field_view, dB=True)
 
 #-----------------------------------------------------------------------------#
 # optimize a transmit array
@@ -120,13 +118,13 @@ for r in range(0, nb_repeat):
             field_obs = field
             
         # if idx % 20 == 00:
-        #     dm.plot_field(pp)
+        #     dm.plot_field(plane="yz", side=side_field_view, dB=True)
     
 plt.figure()
 plt.plot(field_abs)
         
 dm.source.plot_phase_mask()
-dm.plot_field(pp)
+dm.plot_field(plane="yz", side=side_field_view, dB=True)
 
 field_1m_dm2 = dm.field(obs_pt)
 print("Field from source + transmit array: " + str(np.abs(field_1m_dm2[0]).sum()))

@@ -49,7 +49,7 @@ output_sig = ta.output_signals()
 # plot phase mask, input and ouput signals
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
                                     
-ax1.imshow(ta.get_phase_mask())
+ax1.imshow(ta.phase_mask.reshape(n_cells_x, n_cells_y))
 ax1.set_title('Phase mask')
 
 ax2.imshow(np.real(input_signals))

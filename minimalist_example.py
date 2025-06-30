@@ -18,4 +18,4 @@ dm.generate_random_scatterers(10)
 dm.plot_scatterers()
 
 # plot the electrical field in the xz plane
-dm.plot_field(plane="xz", nb_side_pts=100)
+dm.plot_field(plane="xz", nb_side_pts=50)

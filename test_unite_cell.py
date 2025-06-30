@@ -34,8 +34,12 @@ plt.show()
 
 # test horn radiation
 horn = simplified_horn_source(5)
-rad_field = horn.field(theta, phi, power, dist)
+points = []
+x = np.linspace(-0.15, 0.15, 101)
+for idx in range(0, 101):
+    points.append(point(x[idx], 0., 0.15))
+rad_field = horn.field(points)
 
 plt.figure()
-plt.plot(theta, np.real(rad_field))
+plt.plot(x, np.abs(rad_field)[0])
 plt.show()

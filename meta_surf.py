@@ -541,6 +541,8 @@ class unit_cell(radiating_object):
     """A unit cell whose characteristics are defined from simulations"""
     
     def __init__(self, side_length=0.03, wavelgth=0.06):
+        
+        super().__init__()
         self.side_length = side_length
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
@@ -719,6 +721,8 @@ class simplified_horn_source(radiating_object):
     """A simple model for a horn source"""
     
     def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,0.5)):
+        
+        super().__init__()
         self.order = order
         self.wavelgth = wavelgth
         self.position = position
@@ -751,6 +755,8 @@ class plane_wave(radiating_object):
     """A plane wave source oject"""
     
     def __init__(self, wavelgth=0.06, position=point(0.,0.,0.5)):
+        
+        super().__init__()
         self.wavelgth = wavelgth
         self.position = position
         
@@ -945,7 +951,7 @@ class transmit_array(radiating_object):
     def plot_phase_mask(self):
         
         fig, ax = plt.subplots(1)
-        ax.imshow(self.get_phase_mask())
+        ax.imshow(self.phase_mask.reshape(self.n_cell_x, self.n_cell_y))
         ax.set_title('Phase mask')
         
         return fig, ax
@@ -1013,6 +1019,8 @@ class desordered_medium(radiating_object):
     """A simple disordered model"""
     
     def __init__(self, source: sourceType, scat_pos=None):
+        
+        super().__init__()
         
         generate_scat_pos = False
         if scat_pos == None:
