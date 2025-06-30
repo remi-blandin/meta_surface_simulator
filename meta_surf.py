@@ -300,6 +300,26 @@ class radiation_pattern:
     
 ##############################################################################
 
+class radiating_object:
+    
+    """A parent class to gather common methods for radiating objects"""
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, fc = None,  params = None):
+        
+        if fc == None:
+            fc = field_calculator(self)
+            
+        if params == None:
+            params = plot_params()
+            
+        fc.source = self
+        fc.field_in_plane(params)
+  
+    
+##############################################################################
+
 class simple_unit_cell:
     """A simple model for a unit cell"""
     
@@ -345,7 +365,7 @@ class simple_unit_cell:
     
 ##############################################################################
 
-class unit_cell:
+class unit_cell(radiating_object):
     """A unit cell whose characteristics are defined from simulations"""
     
     def __init__(self, side_length=0.03, wavelgth=0.06):
@@ -515,13 +535,6 @@ class unit_cell:
                     np.array([1.]), dp, theta_out, phi_out, 0.)
         
         return [rad_field]
-    
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def plot_field(self, fc : 'field_calculator',  params : 'plot_params'):
-        
-        fc.source = self
-        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -530,7 +543,7 @@ class unit_cell:
 
 ##############################################################################
     
-class simplified_horn_source:
+class simplified_horn_source(radiating_object):
     """A simple model for a horn source"""
     
     def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,0.5)):
@@ -552,13 +565,6 @@ class simplified_horn_source:
         return [np.sqrt(power) * self.wavelgth * \
             np.exp(-1j * 2. * np.pi * r /self.wavelgth) * \
                 self.directivity(theta, phi) / 4. / np.pi / r]
-                
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-    
-    def plot_field(self, fc : 'field_calculator',  params : 'plot_params'):
-        
-        fc.source = self
-        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -568,7 +574,7 @@ class simplified_horn_source:
 
 ##############################################################################
 
-class plane_wave:
+class plane_wave(radiating_object):
     
     """A plane wave source oject"""
     
@@ -596,13 +602,6 @@ class plane_wave:
         return [np.sqrt(power) * \
             np.exp(-1j * 2. * np.pi * (z_pt - self.position.z) * np.ones(nb_points) 
                    /self.wavelgth)]
-            
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def plot_field(self, fc : 'field_calculator',  params : 'plot_params'):
-        
-        fc.source = self
-        fc.field_in_plane(params)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -611,7 +610,7 @@ class plane_wave:
                 
 ##############################################################################
 
-class transmit_array:
+class transmit_array(radiating_object):
     """A simple transmit array model"""
     
     def __init__(self, n_cell_x, n_cell_y, unit_cell : 'simple_unit_cell', \
@@ -683,7 +682,6 @@ class transmit_array:
         plt.show() 
         
         return fig, ax
-        
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -832,19 +830,12 @@ class transmit_array:
 
     def field_labels(self):
         return ["Radiated field from transmit array"]
-    
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def plot_field(self, fc : 'field_calculator',  params : 'plot_params'):
-        
-        fc.source = self
-        fc.field_in_plane(params)
                 
 ##############################################################################
 
 sourceType = Union[transmit_array, simplified_horn_source]
 
-class desordered_medium:
+class desordered_medium(radiating_object):
     """A simple disordered model"""
     
     def __init__(self, source: sourceType, scat_pos=None):
@@ -1044,13 +1035,6 @@ class desordered_medium:
         return [Gdir, self.T, Gdir + self.T]
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def plot_field(self, fc : 'field_calculator',  params : 'plot_params'):
-        
-        fc.source = self
-        fc.field_in_plane(params)
-        
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def field_labels(self):
         return ["Direct field", "Scattered field", "Total field"]
@@ -1073,11 +1057,9 @@ class field_calculator:
     
     """Computes field generated by diverse sources"""
     
-    def __init__(self, source=None):
+    def __init__(self, source):
         self.source = source
         self.figs = []
-        # self.sliders_min = []
-        # self.sliders_max = []
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -1221,7 +1203,6 @@ class field_calculator:
         def update_min(val):
             for img in fig._images:
                 img.set_clim(vmin=slider_min.val)
-            print(f"Updating vmin to {val}") 
             cbar.update_normal(images[0])
             fig.canvas.draw_idle()
         
