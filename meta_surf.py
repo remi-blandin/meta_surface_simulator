@@ -11,8 +11,183 @@ from dataclasses import dataclass
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "plane_wave", "transmit_array", 
-           "desordered_medium", "radiation_pattern", "field_calculator",
+           "desordered_medium", "radiation_pattern",
            "plot_params"]
+
+##############################################################################
+
+class radiating_object:
+    
+    """A parent class to gather common methods for radiating objects"""
+    
+    def __init__(self):
+        
+        self.figs = []
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_field(self, params = None):
+        
+        if params == None:
+            params = plot_params()
+        
+        #================================================#
+        # SET PLOT PARAMETERS
+        
+        # set the axis labels corresponding to the chosen plane
+        if params.plane == "xz":
+            xlabel = "x (m)"
+            ylabel = "z (m)"
+            
+        elif params.plane == "yz":
+            xlabel = "y (m)"
+            ylabel = "z (m)"
+            
+        elif params.plane == "xy":
+            xlabel = "x (m)"
+            ylabel = "y (m)"
+        
+        # set the grid parameters
+        if params.side == None:
+            params.side = 10 * self.source.wavelgth
+        if params.corner_pt == None:
+            if params.plane == "xz":
+                params.corner_pt = point(params.side/2., 0., 0.)
+                
+            elif params.plane == "yz":
+                params.corner_pt = point(0., params.side/2., 0.)
+                
+            elif params.plane == "xy":
+                params.corner_pt = point(params.side/2, 
+                                         params.side/2., 
+                                         params.side/2)
+            
+        #================================================#
+        # GENERATE POINT GRID
+        
+        g = point_grid_2d(params)
+        
+        if params.plot_grid:
+            g.plot()
+            
+        #================================================#
+        # COMPUTE FIELDS
+            
+        # compute field on the grid
+        fields = self.field(g.points)
+        nb_fields = len(fields)
+        field_labels = self.field_labels()
+        
+        # reshape the field data so that they correspond to the grid and get
+        # the overall minimal and maximal value
+        min_fields = []
+        max_fields = []
+        for idx, f in enumerate(fields):
+            
+            if params.dB:
+                fields[idx] = 20.*np.log10(
+                    np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T))
+            else:
+                fields[idx] = np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T)
+            
+            # remove infinite values
+            inf_mask = np.isinf(fields[idx])
+            fields[idx] = np.where(inf_mask, 0., fields[idx])
+            
+            # remove nans
+            nan_mask = np.isnan(fields[idx])
+            fields[idx] = np.where(nan_mask, 0., fields[idx])
+            
+            min_fields.append(fields[idx].min())
+            max_fields.append(fields[idx].max())
+            
+        min_value = np.min(min_fields)
+        max_value = np.max(max_fields)
+        
+        #================================================#
+        # PLOT FIELDS
+        
+        fig, axes = plt.subplots(1, nb_fields)
+        self.figs.append(fig)
+        plt.subplots_adjust(bottom=0.25)
+        
+        # if there is only one plot, make the axes iterrable so that the loops
+        # can work
+        if nb_fields == 1:
+            axes = [axes]
+        
+        fig.suptitle("Plane " + params.plane)
+        
+        images = []
+        for f, ax, label in zip(fields, axes, field_labels):
+            images.append(
+                ax.imshow(f, vmax=max_value, 
+                          extent=g.bounding_box, origin='lower')
+                )
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+            ax.set_title(label)
+
+        cbar = fig.colorbar(images[0], ax=axes, 
+                           location='right', 
+                           pad=0.02, 
+                           shrink=0.5)
+        
+        if params.dB:
+            cbar.set_label('|E| (dB)')
+        else:
+            cbar.set_label('|E|')
+            
+        #================================================#
+        # CREATE SLIDERS TO CONTROL MIN / MAX
+        
+        # create a slider to adjust the maximal color value 
+        ax_slider_min = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
+        slider_min = Slider(
+            ax=ax_slider_min,
+            label='Min Color Value',
+            valmin=min_value,
+            valmax=max_value,
+            valinit=min_value,
+            valstep= (max_value - min_value) / 100
+        )
+        # self.sliders_min.append(slider_min)
+        
+        # create a slider to adjust the maximal color value 
+        ax_slider_max = plt.axes([0.2, 0.05, 0.6, 0.03])  # [left, bottom, width, height]
+        slider_max = Slider(
+            ax=ax_slider_max,
+            label='Max Color Value',
+            valmin=min_value,
+            valmax=max_value,
+            valinit=max_value,
+            valstep= (max_value - min_value) / 100
+        )
+        # self.sliders_max.append(slider_max)
+        
+        # Function to update vmax
+        def update_min(val):
+            for img in fig._images:
+                img.set_clim(vmin=slider_min.val)
+            cbar.update_normal(images[0])
+            fig.canvas.draw_idle()
+        
+        # Function to update vmax
+        def update_max(val):
+            for img in fig._images:
+                img.set_clim(vmax=slider_max.val)
+            cbar.update_normal(images[0])
+            fig.canvas.draw_idle()
+            
+        slider_min.on_changed(update_min)
+        slider_max.on_changed(update_max)
+        
+        fig._slider_min = slider_min
+        fig._silder_max = slider_max
+        fig._images = images
+        fig._cbar = cbar
+        
+        plt.show() 
 
 ##############################################################################
 
@@ -296,27 +471,7 @@ class radiation_pattern:
         """Convert physical to pixel coordinates."""
         theta_px = (theta - self.theta[0]) / self.d_theta
         phi_px = (phi- self.phi[0]) / self.d_phi
-        return np.column_stack((theta_px, phi_px))
-    
-##############################################################################
-
-class radiating_object:
-    
-    """A parent class to gather common methods for radiating objects"""
-        
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def plot_field(self, fc = None,  params = None):
-        
-        if fc == None:
-            fc = field_calculator(self)
-            
-        if params == None:
-            params = plot_params()
-            
-        fc.source = self
-        fc.field_in_plane(params)
-  
+        return np.column_stack((theta_px, phi_px))  
     
 ##############################################################################
 
@@ -615,6 +770,8 @@ class transmit_array(radiating_object):
     
     def __init__(self, n_cell_x, n_cell_y, unit_cell : 'simple_unit_cell', \
                  source: 'simplified_horn_source'):
+        
+        super().__init__()
         
         if unit_cell.wavelgth != source.wavelgth:
             raise ValueError("The wavelength of the unite cell and the source must be equal")
@@ -1050,176 +1207,3 @@ class plot_params:
     nb_side_pts:    int = 50
     plot_grid:      bool = False
     dB:             bool = False
-
-##############################################################################
-
-class field_calculator:
-    
-    """Computes field generated by diverse sources"""
-    
-    def __init__(self, source):
-        self.source = source
-        self.figs = []
-        
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def field_in_plane(self, params : 'plot_params'):
-        
-        #================================================#
-        # SET PLOT PARAMETERS
-        
-        # set the axis labels corresponding to the chosen plane
-        if params.plane == "xz":
-            xlabel = "x (m)"
-            ylabel = "z (m)"
-            
-        elif params.plane == "yz":
-            xlabel = "y (m)"
-            ylabel = "z (m)"
-            
-        elif params.plane == "xy":
-            xlabel = "x (m)"
-            ylabel = "y (m)"
-        
-        # set the grid parameters
-        if params.side == None:
-            params.side = 10 * self.source.wavelgth
-        if params.corner_pt == None:
-            if params.plane == "xz":
-                params.corner_pt = point(params.side/2., 0., 0.)
-                
-            elif params.plane == "yz":
-                params.corner_pt = point(0., params.side/2., 0.)
-                
-            elif params.plane == "xy":
-                params.corner_pt = point(params.side/2, 
-                                         params.side/2., 
-                                         params.side/2)
-            
-        #================================================#
-        # GENERATE POINT GRID
-        
-        g = point_grid_2d(params)
-        
-        if params.plot_grid:
-            g.plot()
-            
-        #================================================#
-        # COMPUTE FIELDS
-            
-        # compute field on the grid
-        fields = self.source.field(g.points)
-        nb_fields = len(fields)
-        field_labels = self.source.field_labels()
-        
-        # reshape the field data so that they correspond to the grid and get
-        # the overall minimal and maximal value
-        min_fields = []
-        max_fields = []
-        for idx, f in enumerate(fields):
-            
-            if params.dB:
-                fields[idx] = 20.*np.log10(
-                    np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T))
-            else:
-                fields[idx] = np.abs(f.reshape((params.nb_side_pts, params.nb_side_pts)).T)
-            
-            # remove infinite values
-            inf_mask = np.isinf(fields[idx])
-            fields[idx] = np.where(inf_mask, 0., fields[idx])
-            
-            # remove nans
-            nan_mask = np.isnan(fields[idx])
-            fields[idx] = np.where(nan_mask, 0., fields[idx])
-            
-            min_fields.append(fields[idx].min())
-            max_fields.append(fields[idx].max())
-            
-        min_value = np.min(min_fields)
-        max_value = np.max(max_fields)
-        
-        #================================================#
-        # PLOT FIELDS
-        
-        fig, axes = plt.subplots(1, nb_fields)
-        self.figs.append(fig)
-        plt.subplots_adjust(bottom=0.25)
-        
-        # if there is only one plot, make the axes iterrable so that the loops
-        # can work
-        if nb_fields == 1:
-            axes = [axes]
-        
-        fig.suptitle("Plane " + params.plane)
-        
-        images = []
-        for f, ax, label in zip(fields, axes, field_labels):
-            images.append(
-                ax.imshow(f, vmax=max_value, 
-                          extent=g.bounding_box, origin='lower')
-                )
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(ylabel)
-            ax.set_title(label)
-
-        cbar = fig.colorbar(images[0], ax=axes, 
-                           location='right', 
-                           pad=0.02, 
-                           shrink=0.5)
-        
-        if params.dB:
-            cbar.set_label('|E| (dB)')
-        else:
-            cbar.set_label('|E|')
-            
-        #================================================#
-        # CREATE SLIDERS TO CONTROL MIN / MAX
-        
-        # create a slider to adjust the maximal color value 
-        ax_slider_min = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
-        slider_min = Slider(
-            ax=ax_slider_min,
-            label='Min Color Value',
-            valmin=min_value,
-            valmax=max_value,
-            valinit=min_value,
-            valstep= (max_value - min_value) / 100
-        )
-        # self.sliders_min.append(slider_min)
-        
-        # create a slider to adjust the maximal color value 
-        ax_slider_max = plt.axes([0.2, 0.05, 0.6, 0.03])  # [left, bottom, width, height]
-        slider_max = Slider(
-            ax=ax_slider_max,
-            label='Max Color Value',
-            valmin=min_value,
-            valmax=max_value,
-            valinit=max_value,
-            valstep= (max_value - min_value) / 100
-        )
-        # self.sliders_max.append(slider_max)
-        
-        # Function to update vmax
-        def update_min(val):
-            for img in fig._images:
-                img.set_clim(vmin=slider_min.val)
-            cbar.update_normal(images[0])
-            fig.canvas.draw_idle()
-        
-        # Function to update vmax
-        def update_max(val):
-            for img in fig._images:
-                img.set_clim(vmax=slider_max.val)
-            cbar.update_normal(images[0])
-            fig.canvas.draw_idle()
-            
-        slider_min.on_changed(update_min)
-        slider_max.on_changed(update_max)
-        
-        fig._slider_min = slider_min
-        fig._silder_max = slider_max
-        fig._images = images
-        fig._cbar = cbar
-        
-        plt.show() 
-        
