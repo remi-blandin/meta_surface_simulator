@@ -11,9 +11,11 @@ source_type = "horn"
 side_dm = 0.2
 side_field_view = 0.5
 renew_scat = False
-nb_cells_side = 10
+nb_cells_x = 12
+nb_cells_y = 8
 nb_scat = 100
 polarizability = 1j
+random_init_pahse = True
 
 # points to optimize
 
@@ -73,13 +75,15 @@ fig, ax = dm.plot_scatterers()
 # add a transmit array
 
 uc = simple_unit_cell()
-ta = transmit_array(nb_cells_side, nb_cells_side, uc, source)
+ta = transmit_array(nb_cells_x, nb_cells_y, uc, source)
 ta.plot(fig, ax)
 
 dm = desordered_medium(ta)
 dm.create_scat_from_csv(file_name)
 dm.set_polarizability(polarizability)
-# dm.source.set_random_phase_mask()
+
+if random_init_pahse:
+    dm.source.set_random_phase_mask()
 
 field_1m_dm2 = dm.field(obs_pt)
 print("Field from source + transmit array: " + str(np.abs(field_1m_dm2[0]).sum()))
@@ -87,12 +91,12 @@ print("Field from source + transmit array + desordered medium: "
       + str(np.abs(field_1m_dm2[2]).sum()))
 
 
-dm.plot_field(plane="yz", side=side_field_view, dB=True)
+dm.plot_field(plane="xy", side=side_field_view, dB=True)
 
 #-----------------------------------------------------------------------------#
 # optimize a transmit array
 
-nb_repeat = 1
+nb_repeat = 3
 
 phase_states = dm.source.phase_mask
 nb_cells = len(phase_states)
@@ -102,7 +106,7 @@ field_abs = np.empty(nb_cells * nb_repeat)
 
 for r in range(0, nb_repeat):
     for idx in range(0, nb_cells):
-        phase_states[idx] = np.pi
+        phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
         dm.source.set_phase_mask(phase_states)
         field = dm.field(obs_pt)
         
@@ -113,7 +117,7 @@ for r in range(0, nb_repeat):
         if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
         # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
         # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
-            phase_states[idx] = 0
+            phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
         else:
             field_obs = field
             
@@ -124,7 +128,7 @@ plt.figure()
 plt.plot(field_abs)
         
 dm.source.plot_phase_mask()
-dm.plot_field(plane="yz", side=side_field_view, dB=True)
+dm.plot_field(plane="xy", side=side_field_view, dB=True)
 
 field_1m_dm2 = dm.field(obs_pt)
 print("Field from source + transmit array: " + str(np.abs(field_1m_dm2[0]).sum()))

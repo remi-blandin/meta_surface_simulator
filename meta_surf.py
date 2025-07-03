@@ -66,7 +66,7 @@ class radiating_object:
             elif params['plane'] == "xy":
                 params['corner_pt'] = point(params['side']/2, 
                                          params['side']/2., 
-                                         params['side']/2)
+                                         params['side'])
             
         #================================================#
         # GENERATE POINT GRID
