@@ -14,8 +14,8 @@ renew_scat = False
 nb_cells_x = 12
 nb_cells_y = 8
 nb_scat = 100
-polarizability = 1j
-random_init_pahse = True
+polarizability = 0.001
+random_init_pahse = False
 
 # points to optimize
 
@@ -99,6 +99,7 @@ dm.plot_field(plane="xy", side=side_field_view, dB=True)
 nb_repeat = 3
 
 phase_states = dm.source.phase_mask
+amp_states = dm.source.amp_mask
 nb_cells = len(phase_states)
 
 field_obs = dm.field(obs_pt)
@@ -106,18 +107,39 @@ field_abs = np.empty(nb_cells * nb_repeat)
 
 for r in range(0, nb_repeat):
     for idx in range(0, nb_cells):
-        phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
-        dm.source.set_phase_mask(phase_states)
-        field = dm.field(obs_pt)
+        # phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+        # dm.source.set_phase_mask(phase_states)
+        # field = dm.field(obs_pt)
         
+        # field_abs[r*nb_cells + idx] = np.abs(field[2]).sum()
+        # print("iteration " + str(idx + 1) + ": " 
+        #       + str(field_abs[r*nb_cells + idx]) )
+        
+        # if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
+        # # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
+        # # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
+        #     phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+        # else:
+        #     field_obs = field
+            
+        # change amplitude
+        if amp_states[idx] == 1.:
+           amp_states[idx] = 0.
+        else:
+           amp_states[idx] = 1.
+           
+        dm.source.set_amp_mask(amp_states)
+        field = dm.field(obs_pt)
+        # FIXME: the value of field_abs is changed without keeping track
         field_abs[r*nb_cells + idx] = np.abs(field[2]).sum()
         print("iteration " + str(idx + 1) + ": " 
               + str(field_abs[r*nb_cells + idx]) )
         
         if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
-        # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
-        # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
-            phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+            if amp_states[idx] == 1.:
+               amp_states[idx] = 0.
+            else:
+               amp_states[idx] = 1.
         else:
             field_obs = field
             
@@ -128,6 +150,7 @@ plt.figure()
 plt.plot(field_abs)
         
 dm.source.plot_phase_mask()
+dm.source.plot_amp_mask()
 dm.plot_field(plane="xy", side=side_field_view, dB=True)
 
 field_1m_dm2 = dm.field(obs_pt)

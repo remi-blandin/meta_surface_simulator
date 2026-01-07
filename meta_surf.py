@@ -513,15 +513,15 @@ class simple_unit_cell:
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def output_sig(self, input_sig, phase_shift):
-        return input_sig * np.exp(-1j * phase_shift)
+    def output_sig(self, input_sig, phase_shift, amp):
+        return input_sig * np.exp(-1j * phase_shift) * amp
             
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
             
-    def field(self, incoming_wave, theta, phi, phase_shift, \
+    def field(self, incoming_wave, theta, phi, phase_shift, amp, \
                        dist, theta_out, phi_out):
         input_sig = self.input_sig(incoming_wave, theta, phi)
-        return self.output_sig(input_sig, phase_shift) \
+        return self.output_sig(input_sig, phase_shift, amp) \
             * self.directivity(theta_out, phi_out) \
                 * self.wavelgth * np.exp(-1j * 2. * np.pi * dist / self.wavelgth) \
                     /4. / np.pi / dist
@@ -618,7 +618,7 @@ class unit_cell(radiating_object):
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def output_sig(self, input_sig, phase):
+    def output_sig(self, input_sig, phase, amp):
         
         freq = c / self.wavelgth
         
@@ -628,7 +628,7 @@ class unit_cell(radiating_object):
         
             output_sigs = np.empty(nb_sigs, dtype=np.complex128)
             
-            for idx, (sig, pt) in enumerate(zip(input_sig, phase)):
+            for idx, (sig, pt, a) in enumerate(zip(input_sig, phase, amp)):
                 
                 idx_pt = self.idx_phase_state(pt)
                 ntwk = self.scat_mats[idx_pt]
@@ -636,7 +636,7 @@ class unit_cell(radiating_object):
                 idx_f = np.argmin(np.abs(ntwk.frequency.f - freq))
                 
                 # get the transmission coefficcient at this specific frequency
-                transmission_coef = ntwk.s[idx_f][0,2]
+                transmission_coef = ntwk.s[idx_f][0,2] * a
                 
                 output_sigs[idx] = transmission_coef * sig
                 
@@ -648,7 +648,7 @@ class unit_cell(radiating_object):
             idx_f = np.argmin(np.abs(ntwk.frequency.f - freq))
             
             # get the transmission coefficcient at this specific frequency
-            transmission_coef = ntwk.s[idx_f][0,2]
+            transmission_coef = ntwk.s[idx_f][0,2] * amp
             
             output_sigs = transmission_coef * input_sig
             
@@ -803,6 +803,7 @@ class transmit_array(radiating_object):
         self.n_cell_y = n_cell_y
         self.nb_cell = n_cell_x * n_cell_y
         self.unit_cell = unit_cell
+        self.amp_mask = np.ones(self.nb_cell)
         self.phase_mask = np.zeros(self.nb_cell)
         self.source = source
         self.wavelgth = source.wavelgth
@@ -867,6 +868,15 @@ class transmit_array(radiating_object):
         
     def set_phase_mask(self, value):
         self.phase_mask = value
+        
+        # update input and ouput signals 
+        self.input_signals()
+        self.output_signals()
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_amp_mask(self, value):
+        self.amp_mask = value
         
         # update input and ouput signals 
         self.input_signals()
@@ -955,6 +965,16 @@ class transmit_array(radiating_object):
         ax.set_title('Phase mask')
         
         return fig, ax
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot_amp_mask(self):
+        
+        fig, ax = plt.subplots(1)
+        ax.imshow(self.amp_mask.reshape(self.n_cell_x, self.n_cell_y))
+        ax.set_title('Amplitude mask')
+        
+        return fig, ax
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
@@ -979,7 +999,7 @@ class transmit_array(radiating_object):
     def output_signals(self, power=1.):
         
         output_sig = self.unit_cell.output_sig(
-            self.input_sig, self.phase_mask)
+            self.input_sig, self.phase_mask, self.amp_mask)
                 
         self.output_sig = output_sig
                 
