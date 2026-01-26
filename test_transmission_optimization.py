@@ -14,7 +14,7 @@ renew_scat = False
 nb_cells_x = 12
 nb_cells_y = 8
 nb_scat = 100
-polarizability = 0.001
+polarizability = 0.5
 random_init_pahse = False
 
 # points to optimize
@@ -33,7 +33,7 @@ if source_type == "horn":
 elif source_type == "plane_wave":
     source = plane_wave()
 
-source.plot_field(plane="xz", side=side_field_view)
+# source.plot_field(plane="xz", side=side_field_view)
 
 field_1m = source.field(obs_pt)
 
@@ -64,7 +64,8 @@ for i in range(0, nb_scat):
         idx =idx + 1
 plt.plot(distances)
 
-fig, ax = dm.plot_scatterers()
+# fig, ax = dm.plot_scatterers()
+
 # field_1m_dm = dm.field(obs_pt)
 # print("Field from source: " + str(np.abs(field_1m_dm[0])))
 # print("Field from source + desordered medium: " + str(np.abs(field_1m_dm[2])))
@@ -76,7 +77,7 @@ fig, ax = dm.plot_scatterers()
 
 uc = simple_unit_cell()
 ta = transmit_array(nb_cells_x, nb_cells_y, uc, source)
-ta.plot(fig, ax)
+# ta.plot(fig, ax)
 
 dm = desordered_medium(ta)
 dm.create_scat_from_csv(file_name)
@@ -96,32 +97,60 @@ dm.plot_field(plane="xy", side=side_field_view, dB=True)
 #-----------------------------------------------------------------------------#
 # optimize a transmit array
 
-nb_repeat = 3
+nb_repeat = 1
 
 phase_states = dm.source.phase_mask
 amp_states = dm.source.amp_mask
 nb_cells = len(phase_states)
 
 field_obs = dm.field(obs_pt)
-field_abs = np.empty(nb_cells * nb_repeat)
+field_abs = np.empty(nb_cells * nb_repeat * 3)
+
+field_states = np.empty(3)
 
 for r in range(0, nb_repeat):
     for idx in range(0, nb_cells):
-        # phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+        
+        # # test blocking state
+        # amp_states[idx] = 0.
+        # dm.source.set_amp_mask(amp_states)
+        # field = dm.field(obs_pt)
+        # field_abs[r*nb_cells*3 + 3*idx] = np.abs(field[2]).sum()
+        # field_states[0] = np.abs(field[2]).sum()
+        # print("Rep " + str(r + 1) + " iteration " + str(idx + 1) + " block: " 
+        #       + str(field_states[0]) )
+        
+        # # test 0 pi state
+        # amp_states[idx] = 1.
+        # dm.source.set_amp_mask(amp_states)
+        # phase_states[idx] = 0.
         # dm.source.set_phase_mask(phase_states)
         # field = dm.field(obs_pt)
+        # field_abs[r*nb_cells*3 + 3*idx + 1] = np.abs(field[2]).sum()
+        # field_states[1] = np.abs(field[2]).sum()
+        # print("Rep " + str(r + 1) + " iteration " + str(idx + 1) + " 0: " 
+        #       + str(field_states[1]) )
         
-        # field_abs[r*nb_cells + idx] = np.abs(field[2]).sum()
-        # print("iteration " + str(idx + 1) + ": " 
-        #       + str(field_abs[r*nb_cells + idx]) )
+        # # test 1 pi state
+        # phase_states[idx] = np.pi
+        # dm.source.set_amp_mask(amp_states)
+        # field = dm.field(obs_pt)
+        # field_abs[r*nb_cells*3 + 3*idx + 2] = np.abs(field[2]).sum()
+        # field_states[2] = np.abs(field[2]).sum()
+        # print("Rep " + str(r + 1) + " iteration " + str(idx + 1) + " pi: " 
+        #       + str(field_states[2]) )
         
-        # if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
-        # # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
-        # # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
-        #     phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
-        # else:
-        #     field_obs = field
-            
+        # # spot the maximum and attribute the corresponding state
+        # idx_max = np.argmax(field_states)
+        # if idx_max == 0:
+        #     amp_states[idx] = 0.
+        #     dm.source.set_amp_mask(amp_states)
+        # elif idx_max == 1:
+        #     phase_states[idx] = 0.
+        #     dm.source.set_phase_mask(phase_states)
+        
+        
+        # ###
         # change amplitude
         if amp_states[idx] == 1.:
            amp_states[idx] = 0.
@@ -130,10 +159,9 @@ for r in range(0, nb_repeat):
            
         dm.source.set_amp_mask(amp_states)
         field = dm.field(obs_pt)
-        # FIXME: the value of field_abs is changed without keeping track
-        field_abs[r*nb_cells + idx] = np.abs(field[2]).sum()
-        print("iteration " + str(idx + 1) + ": " 
-              + str(field_abs[r*nb_cells + idx]) )
+        field_abs[r*nb_cells*2 + 2*idx] = np.abs(field[2]).sum()
+        print("Rep " + str(r + 1) + " iteration " + str(idx + 1) + ": " 
+              + str(field_abs[r*nb_cells*2 + 2*idx]) )
         
         if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
             if amp_states[idx] == 1.:
@@ -142,6 +170,22 @@ for r in range(0, nb_repeat):
                amp_states[idx] = 1.
         else:
             field_obs = field
+    
+
+        # phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+        # dm.source.set_phase_mask(phase_states)
+        # field = dm.field(obs_pt)
+        
+        # field_abs[r*nb_cells*2 + 2*idx + 1] = np.abs(field[2]).sum()
+        # print("Rep " + str(r + 1) + " iteration " + str(idx + 1) + ": " 
+        #       + str(field_abs[r*nb_cells*2 + 2*idx + 1]) )
+        
+        # if np.abs(field[2]).sum() < np.abs(field_obs[2]).sum():
+        # # if (np.abs(field[2][0,0]) < np.abs(field_obs[2][0,0])) and \
+        # # (np.abs(field[2][0,1]) > np.abs(field_obs[2][0,1])):
+        #     phase_states[idx] = ((phase_states[idx] / np.pi + 1) % 2) * np.pi
+        # else:
+        #     field_obs = field
             
         # if idx % 20 == 00:
         #     dm.plot_field(plane="yz", side=side_field_view, dB=True)
