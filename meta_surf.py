@@ -55,7 +55,7 @@ class radiating_object:
         
         # set the grid parameters
         if params['side'] == None:
-            params['side'] = 10 * self.source.wavelgth
+            params['side'] = 10 * self.wavelgth
         if params['corner_pt'] == None:
             if params['plane'] == "xz":
                 params['corner_pt'] = point(params['side']/2., 0., 0.)
@@ -499,7 +499,7 @@ class simple_unit_cell:
         self.side_length = side_length
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
-        
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def directivity(self, theta, phi):
