@@ -9,8 +9,8 @@ from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
-           "simplified_horn_source", "plane_wave", "transmit_array", 
-           "desordered_medium", "radiation_pattern"]
+           "simplified_horn_source", "source_from_radpat", "plane_wave", 
+           "transmit_array", "desordered_medium", "radiation_pattern"]
 
 ##############################################################################
 
@@ -235,9 +235,7 @@ class point:
         for idx, pt in enumerate(points):
             r[idx] = self.distance_to(pt)
             theta[idx] = np.arccos((self.z - pt.z) / r[idx])
-            phi[idx] = np.arccos((self.y - pt.y) / 
-                np.sqrt(np.square(self.x - pt.x) + \
-                                        + np.square(self.y - pt.y)))
+            phi[idx] = np.arctan2((self.y - pt.y), (self.x - pt.x))
             
         return r, theta, phi
             
@@ -272,31 +270,34 @@ class point_grid_2d:
             for j in range(0, params['nb_side_pts']):
                 
                 if params['plane'] == "xy":
-                    self.points[idx] = point(side_coord[i] - params['corner_pt'].x,\
-                                             side_coord[j] - params['corner_pt'].y,\
+                    self.points[idx] = point(side_coord[i] + params['corner_pt'].x,\
+                                             side_coord[j] + params['corner_pt'].y,\
                                              params['corner_pt'].z)
-                    self.bounding_box = [- params['corner_pt'].x, \
-                                         params['side'] - params['corner_pt'].x, \
-                                         - params['corner_pt'].y, \
-                                         params['side'] - params['corner_pt'].y]
+                        
+                    self.bounding_box = [params['corner_pt'].x, \
+                                         params['side'] + params['corner_pt'].x, \
+                                         params['corner_pt'].y, \
+                                         params['side'] + params['corner_pt'].y]
                         
                 elif params['plane'] == "xz":
-                    self.points[idx] = point(side_coord[i] - params['corner_pt'].x,\
+                    self.points[idx] = point(side_coord[i] + params['corner_pt'].x,\
                                              params['corner_pt'].y,\
-                                             side_coord[j] - params['corner_pt'].z)
-                    self.bounding_box = [- params['corner_pt'].x, \
-                                         params['side'] - params['corner_pt'].x, \
-                                         - params['corner_pt'].z, \
-                                         params['side'] - params['corner_pt'].z]
+                                             side_coord[j] + params['corner_pt'].z)
+                        
+                    self.bounding_box = [params['corner_pt'].x, \
+                                         params['side'] + params['corner_pt'].x, \
+                                         params['corner_pt'].z, \
+                                         params['side'] + params['corner_pt'].z]
                         
                 elif params['plane'] == "yz":
                     self.points[idx] = point(params['corner_pt'].x, \
-                                             side_coord[i] - params['corner_pt'].y,\
-                                             side_coord[j] - params['corner_pt'].z)
-                    self.bounding_box = [- params['corner_pt'].y, \
-                                         params['side'] - params['corner_pt'].y, \
-                                         - params['corner_pt'].z, \
-                                         params['side'] - params['corner_pt'].z]
+                                             side_coord[i] + params['corner_pt'].y,\
+                                             side_coord[j] + params['corner_pt'].z)
+                        
+                    self.bounding_box = [params['corner_pt'].y, \
+                                         params['side'] + params['corner_pt'].y, \
+                                         params['corner_pt'].z, \
+                                         params['side'] + params['corner_pt'].z]
                 idx = idx + 1
                 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -389,6 +390,22 @@ class radiation_pattern:
         
         self.rad_pat = dir_pat.reshape((self.n_theta, self.n_phi))
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def rotate(self, rot_phi=0., rot_theta=0.):
+        
+        # compute the number of index which should be shifted
+        idx_phi = int(np.round(rot_phi / self.d_phi))
+        
+        print(f"Pattern resolution {self.d_phi * 180. / np.pi:.1f} deg over"
+              f" phi and {self.d_theta * 180. / np.pi:.1f} deg over theta")
+        
+        self.rad_pat = np.roll(self.rad_pat, idx_phi, axis=1)
+        
+        # FIXME: Add rotation over theta (more tricky)
+        if rot_theta != 0.:
+            print("Sorry! Rotation over theta isn't yet available :(")
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot(self):
@@ -720,7 +737,7 @@ class unit_cell(radiating_object):
 class simplified_horn_source(radiating_object):
     """A simple model for a horn source"""
     
-    def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,0.5)):
+    def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,-0.5)):
         
         super().__init__()
         self.order = order
@@ -746,7 +763,42 @@ class simplified_horn_source(radiating_object):
 
     def field_labels(self):
         return ["Field radiated by a simple horn source model"]
+    
+##############################################################################
 
+class source_from_radpat(radiating_object):
+    
+    """A source defined from a radiation pattern"""
+    
+    def __init__(self, radpat, wavelgth=0.06, position=point(0.,0.,-0.5), 
+                 power=1.):
+        
+        super().__init__()
+        self.wavelgth = wavelgth
+        self.position = position
+        self.radpat = radpat
+        self.power = power
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def directivity(self, theta, phi):
+        
+        return self.radpat.value(theta, phi)
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+    
+    def field(self, point):
+        
+        r, theta, phi = self.position.spherical_coords(point)
+        
+        return [np.sqrt(self.power) * self.wavelgth * \
+            np.exp(-1j * 2. * np.pi * r /self.wavelgth) * \
+                self.directivity(theta, phi) / 4. / np.pi / r]
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field_labels(self):
+        return ["Field radiated by a source defined from a radiation pattern"]
 
 ##############################################################################
 
@@ -754,7 +806,7 @@ class plane_wave(radiating_object):
     
     """A plane wave source oject"""
     
-    def __init__(self, wavelgth=0.06, position=point(0.,0.,0.5)):
+    def __init__(self, wavelgth=0.06, position=point(0.,0.,-0.5)):
         
         super().__init__()
         self.wavelgth = wavelgth
