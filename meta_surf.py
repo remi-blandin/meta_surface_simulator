@@ -14,13 +14,64 @@ __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
 
 ##############################################################################
 
+class point:
+    
+    """A cartesian point"""
+    
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+        
+    def __repr__(self):
+        return f"Point(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def distance_to(self, other_point):
+        return np.sqrt((self.x - other_point.x)**2 + \
+                       (self.y - other_point.y)**2 + \
+                       (self.z - other_point.z)**2)
+            
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def spherical_coords(self, points):
+        
+        # if only one point is requested, make it a list object so that it is 
+        # iterable
+        if type(points) == point:
+            points = [points]
+            
+        nb_pts = len(points)
+        r = np.empty(nb_pts)
+        theta = np.empty(nb_pts)
+        phi = np.empty(nb_pts)
+        
+        for idx, pt in enumerate(points):
+            r[idx] = self.distance_to(pt)
+            theta[idx] = np.arccos((self.z - pt.z) / r[idx])
+            phi[idx] = np.arctan2((self.y - pt.y), (self.x - pt.x))
+            
+        return r, theta, phi
+
+##############################################################################
+
 class radiating_object:
     
     """A parent class to gather common methods for radiating objects"""
     
-    def __init__(self):
+    def __init__(self, position=point(0.,0.,0.)):
         
         self.figs = []
+        self.position = position
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def set_position(self, position):
+        
+        self.position = position
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -195,49 +246,7 @@ class radiating_object:
         
         plt.show() 
 
-##############################################################################
 
-class point:
-    
-    """A cartesian point"""
-    
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-        
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-        
-    def __repr__(self):
-        return f"Point(x={self.x:.2f}, y={self.y:.2f}, z={self.z:.2f})"
-        
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def distance_to(self, other_point):
-        return np.sqrt((self.x - other_point.x)**2 + \
-                       (self.y - other_point.y)**2 + \
-                       (self.z - other_point.z)**2)
-            
-#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
-
-    def spherical_coords(self, points):
-        
-        # if only one point is requested, make it a list object so that it is 
-        # iterable
-        if type(points) == point:
-            points = [points]
-            
-        nb_pts = len(points)
-        r = np.empty(nb_pts)
-        theta = np.empty(nb_pts)
-        phi = np.empty(nb_pts)
-        
-        for idx, pt in enumerate(points):
-            r[idx] = self.distance_to(pt)
-            theta[idx] = np.arccos((self.z - pt.z) / r[idx])
-            phi[idx] = np.arctan2((self.y - pt.y), (self.x - pt.x))
-            
-        return r, theta, phi
             
 ##############################################################################
 
@@ -739,10 +748,9 @@ class simplified_horn_source(radiating_object):
     
     def __init__(self, order=5, wavelgth=0.06, position=point(0.,0.,-0.5)):
         
-        super().__init__()
+        super().__init__(position=position)
         self.order = order
         self.wavelgth = wavelgth
-        self.position = position
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -773,9 +781,8 @@ class source_from_radpat(radiating_object):
     def __init__(self, radpat, wavelgth=0.06, position=point(0.,0.,-0.5), 
                  power=1.):
         
-        super().__init__()
+        super().__init__(position=position)
         self.wavelgth = wavelgth
-        self.position = position
         self.radpat = radpat
         self.power = power
         
@@ -826,9 +833,8 @@ class plane_wave(radiating_object):
     
     def __init__(self, wavelgth=0.06, position=point(0.,0.,-0.5)):
         
-        super().__init__()
+        super().__init__(position=position)
         self.wavelgth = wavelgth
-        self.position = position
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
