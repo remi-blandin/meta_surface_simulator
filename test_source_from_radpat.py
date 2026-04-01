@@ -10,7 +10,7 @@ rp = radiation_pattern("horn_realized_gain_y.csv", flip_ud=True)
 theta = [0.1, 0.3, 0.9, 2.3]
 phi = [0.2, 1.6, 2.7, -3.1]
 
-# rp.value(theta, phi, plot=True)
+rp.value(theta, phi, plot=True)
 
 #----------------------------------------------------------------------------#
 # Test source modelling from radiation pattern
@@ -37,3 +37,11 @@ src.plot_field(plane="yz", corner_pt=point(0.,-0.3,-0.6),
                nb_side_pts = 100, dB=True)
 src.plot_field(plane="xy", corner_pt=point(-0.3,-0.3,0.), 
                nb_side_pts = 100, dB=True)
+
+#----------------------------------------------------------------------------#
+# Test metasurface illumination
+
+ucell = simple_unit_cell()
+ta = transmit_array(8, 12, ucell, src)
+
+ta.plot()

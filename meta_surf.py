@@ -781,6 +781,24 @@ class source_from_radpat(radiating_object):
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
+    def plot(self, fig=None, ax=None):
+        
+        if (fig == None) or (ax == None):        
+            fig = plt.figure()    
+            ax = fig.add_subplot(111, projection='3d')
+            
+        ax.plot(self.position.x, 
+                self.position.y, 
+                self.position.z, 
+                'r.', label='S')
+        
+        ax.set_aspect('equal')
+        plt.show() 
+        
+        return fig, ax
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
     def directivity(self, theta, phi):
         
         return self.radpat.value(theta, phi)
@@ -901,17 +919,22 @@ class transmit_array(radiating_object):
         if (fig == None) or (ax == None):        
             fig = plt.figure()    
             ax = fig.add_subplot(111, projection='3d')
+            
         
         for pt in self.coord_cells:
             cell_corners = np.repeat(np.array([[pt.x, pt.y, pt.z]]), 5, 0)
         
             cell_corners = cell_corners + translate_to_corners
 
-            ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2])
+            ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2],
+                    'k')
+            
+        self.source.plot(fig, ax)
         
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        ax.set_aspect('equal')
         plt.show() 
         
         return fig, ax
