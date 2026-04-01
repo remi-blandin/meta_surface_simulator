@@ -2,6 +2,7 @@ import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.widgets import Slider
 import csv
 from numba import jit
@@ -208,7 +209,6 @@ class radiating_object:
             valinit=min_value,
             valstep= (max_value - min_value) / 100
         )
-        # self.sliders_min.append(slider_min)
         
         # create a slider to adjust the maximal color value 
         ax_slider_max = plt.axes([0.2, 0.05, 0.6, 0.03])  # [left, bottom, width, height]
@@ -220,7 +220,6 @@ class radiating_object:
             valinit=max_value,
             valstep= (max_value - min_value) / 100
         )
-        # self.sliders_max.append(slider_max)
         
         # Function to update vmax
         def update_min(val):
@@ -246,6 +245,7 @@ class radiating_object:
         
         plt.show() 
 
+        return fig, axes
 
             
 ##############################################################################
@@ -926,20 +926,26 @@ class transmit_array(radiating_object):
             fig = plt.figure()    
             ax = fig.add_subplot(111, projection='3d')
             
+        proj3D = isinstance(ax, Axes3D)
         
         for pt in self.coord_cells:
             cell_corners = np.repeat(np.array([[pt.x, pt.y, pt.z]]), 5, 0)
         
             cell_corners = cell_corners + translate_to_corners
 
-            ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2],
+            if proj3D:
+                ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2],
                     'k')
+            else:
+                ax.plot(cell_corners[:,0], cell_corners[:,1], 'k')
             
-        self.source.plot(fig, ax)
+        if proj3D:
+            self.source.plot(fig, ax)
         
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
+        if proj3D:
+            ax.set_zlabel('Z')
         ax.set_aspect('equal')
         plt.show() 
         
