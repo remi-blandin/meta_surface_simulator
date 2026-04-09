@@ -1042,6 +1042,12 @@ class transmit_array(radiating_object):
         # update input and ouput signals 
         self.input_signals()
         self.output_signals()
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def save_phase_mask(self, name="phase_mask.npy"):
+    
+        np.save(name, self.phase_mask)
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
