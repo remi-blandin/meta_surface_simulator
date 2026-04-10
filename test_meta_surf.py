@@ -8,6 +8,8 @@ from meta_surf import *
 
 unit_cell_side_lgth = 0.03
 dist_src = -0.5
+# src_type = "plane_wave"
+src_type = "horn"
 wavelgth = 0.06
 power = 1
 n_cells_x = 8
@@ -15,23 +17,26 @@ n_cells_y = 12
 # phase_mask = "uniform"
 # phase_mask = "devided_in_half"
 # phase_mask = "random"
-# phase_mask = "focal_point"
-phase_mask = "beam"
+phase_mask = "focal_point"
+# phase_mask = "beam"
 
 theta_beam = np.pi/2
 phi_beam = np.pi/4
 
-focal_point = point(0., 0., 0.3)
+focal_point = point(10, 30*np.pi/180, 30*np.pi/180, spherical_coord=True)
 
-quant = True
+quant = False
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
 
 ucell = simple_unit_cell(unit_cell_side_lgth)
-horn = simplified_horn_source(5, position=point(0.,0.,dist_src))
+if src_type == "plane_wave":
+    src = plane_wave()
+elif src_type == "horn":
+    src = simplified_horn_source(5, position=point(0.,0.,dist_src))
 
-ta = transmit_array(n_cells_x, n_cells_y, ucell, horn)
+ta = transmit_array(n_cells_x, n_cells_y, ucell, src)
 
 # generate phase mask
 if phase_mask == "random":
