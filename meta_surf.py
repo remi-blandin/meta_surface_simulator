@@ -9,6 +9,10 @@ from numba import jit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
 
+import plotly.graph_objects as go
+import plotly.io as pio
+pio.renderers.default = "browser"
+
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "source_from_radpat", "plane_wave", 
            "transmit_array", "desordered_medium", "radiation_pattern"]
@@ -441,7 +445,7 @@ class radiation_pattern:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot(self):
+    def plot(self, plotter="plotly"):
         phi, theta = np.meshgrid(self.phi, self.theta)
         
         # convert to cartesian coordinates
@@ -451,12 +455,24 @@ class radiation_pattern:
         
         max_val = self.rad_pat.max()
         
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(x, y, z, 
-                        facecolors=plt.cm.viridis(self.rad_pat / max_val)
-                        )
-        ax.set_aspect('equal')
+        if plotter == "plotly":
+            fig = go.Figure(data=[
+                go.Surface(x=x, y=y, z=z, colorscale='Viridis')])
+            fig.update_layout(
+                scene=dict(
+                    aspectmode='data'
+                )
+            )
+            fig.show()
+            ax = None
+        elif plotter == "matplotlib":
+        
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            ax.plot_surface(x, y, z, 
+                            facecolors=plt.cm.viridis(self.rad_pat / max_val)
+                            )
+            ax.set_aspect('equal')
         
         return fig, ax
         
