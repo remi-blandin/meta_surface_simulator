@@ -19,10 +19,17 @@ class point:
     
     """A cartesian point"""
     
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+    def __init__(self, x, y, z, spherical_coord = False):
+        
+        # in this case x, y, z are understood as r, theta, phi
+        if spherical_coord:
+            self.x = x * np.sin(y) * np.cos(z)
+            self.y = x * np.sin(y) * np.sin(z)
+            self.z = x * np.cos(y)
+        else:
+            self.x = x
+            self.y = y
+            self.z = z
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -340,9 +347,26 @@ class radiation_pattern:
     
     """A pattern defined over 2 angular spherical coordinates"""
     
-    def __init__(self, csv_file, flip_ud=False):
+    def __init__(self, csv_file=None, flip_ud=False):
         
-        self.load_pattern_from_csv(csv_file, flip_ud)
+        if csv_file is not None:
+            self.load_pattern_from_csv(csv_file, flip_ud)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def create_from_field(self, theta, phi, values):
+        
+        # theta : a numpy array containing the theta angles
+        # phi : a numpy array containing the phi angles
+        # values : a n_theta x n_phi numpy array containing the field values
+        
+        self.theta = theta
+        self.phi = phi
+        self.n_phi = len(self.phi)
+        self.n_theta = len(self.theta)
+        self.d_phi = self.phi[1] - self.phi[0]
+        self.d_theta = self.theta[1] - self.theta[0]
+        self.rad_pat = np.abs(values)
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
@@ -420,10 +444,6 @@ class radiation_pattern:
     def plot(self):
         phi, theta = np.meshgrid(self.phi, self.theta)
         
-        # convert to radian
-        phi = phi
-        theta = theta
-        
         # convert to cartesian coordinates
         x = self.rad_pat * np.sin(theta) * np.cos(phi)
         y = self.rad_pat * np.sin(theta) * np.sin(phi)
@@ -436,7 +456,7 @@ class radiation_pattern:
         ax.plot_surface(x, y, z, 
                         facecolors=plt.cm.viridis(self.rad_pat / max_val)
                         )
-        ax.set_box_aspect([1, 1, 1])
+        ax.set_aspect('equal')
         
         return fig, ax
         
@@ -1118,6 +1138,39 @@ class transmit_array(radiating_object):
             rad_field[idx] = field_from_cells.sum()
         
         return [rad_field]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def radiation_pattern(self, plot=True, n_theta = 101, n_phi = 201, r = 100.):
+        
+        # create a regularly spaced r, theta, phi grid
+        theta = np.linspace(0,np.pi, n_theta)
+        phi = np.linspace(0, 2*np.pi, n_phi)
+        rad_points = [point] * n_theta * n_phi
+        cnt = 0
+        for idx_t in range(0, n_theta):
+            for idx_p in range(0, n_phi):
+                rad_points[cnt] = point(r, theta[idx_t], phi[idx_p], 
+                                        spherical_coord=True)
+                cnt = cnt + 1
+                
+        # calculate the field at these points
+        rad_field = self.field(rad_points)
+        rad_field = np.reshape(rad_field, (n_theta, n_phi))
+        
+        # create a radiation pattern from calculated field
+        rad_pat = radiation_pattern()
+        rad_pat.create_from_field(theta, phi, rad_field)
+        
+        
+        if plot:
+            
+            plt.figure()
+            plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
+            plt.show()
+            
+            rad_pat.plot()
+        
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 

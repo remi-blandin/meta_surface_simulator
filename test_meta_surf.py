@@ -7,22 +7,23 @@ from meta_surf import *
 # parameters
 
 unit_cell_side_lgth = 0.03
-dist_src = 10
+dist_src = -0.5
 wavelgth = 0.06
 power = 1
-n_cells_x = 20
-n_cells_y = 20
+n_cells_x = 8
+n_cells_y = 12
+# phase_mask = "uniform"
 # phase_mask = "devided_in_half"
-phase_mask = "random"
-
-# phase_mask = "beam"
-theta_beam = 2*np.pi/3
-phi_beam = 0
-
+# phase_mask = "random"
 # phase_mask = "focal_point"
+phase_mask = "beam"
+
+theta_beam = np.pi/2
+phi_beam = np.pi/4
+
 focal_point = point(0., 0., 0.3)
 
-quant = False
+quant = True
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
@@ -59,8 +60,17 @@ ax3.imshow(np.real(output_sig))
 ax3.set_title("Output signal")
 
 #----------------------------------------------------------------------------#
+# Compute the radiated pattern
+
+ta.radiation_pattern()
+
+#----------------------------------------------------------------------------#
 # compute the radiated field on point grids
 
-ta.plot_field(plane="xz")
-ta.plot_field(plane="yz")
-ta.plot_field(plane="xy")
+res = 20
+
+ta.plot_field(plane="xz", nb_side_pts=res)
+# ta.plot_field(plane="yz", nb_side_pts=res)
+# ta.plot_field(plane="xy", nb_side_pts=res)
+
+# ta.plot_field(plane="xz", nb_side_pts=res, corner_pt=point(0.3,0., 0.3))
