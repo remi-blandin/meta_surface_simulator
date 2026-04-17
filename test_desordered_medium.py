@@ -9,8 +9,8 @@ from meta_surf import *
 
 unit_cell_side_lgth = 0.03
 dist_src = 0.5
-n_cells_x = 20
-n_cells_y = 20
+n_cells_x = 8
+n_cells_y = 12
 
 source_type = "plane_wave"
 # source_type = "horn"
