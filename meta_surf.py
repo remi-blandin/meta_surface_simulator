@@ -445,7 +445,7 @@ class radiation_pattern:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot(self, plotter="plotly", dB = True, dB_range = 20):
+    def plot(self, plotter="plotly", dB = True, dB_range = 20, show=True):
         
         phi, theta = np.meshgrid(self.phi, self.theta)
         
@@ -473,7 +473,10 @@ class radiation_pattern:
                     aspectmode='data'
                 )
             )
-            fig.show()
+            
+            if show:
+                fig.show()
+                
             ax = None
             
         elif plotter == "matplotlib":
@@ -958,10 +961,10 @@ class transmit_array(radiating_object):
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot(self, fig=None, ax=None):
+    def plot(self, fig=None, ax=None, plotter="plotly", scale = 1.):
         
         dx = self.unit_cell.side_length / 2.
-        translate_to_corners = np.array([
+        translate_to_corners = scale * np.array([
             [dx, dx, 0.],
             [dx, -dx, 0.],
             [-dx, -dx, 0.],
@@ -969,33 +972,69 @@ class transmit_array(radiating_object):
             [dx, dx, 0.]
             ])
         
-        if (fig == None) or (ax == None):        
-            fig = plt.figure()    
-            ax = fig.add_subplot(111, projection='3d')
+        if fig is None:  
             
-        proj3D = isinstance(ax, Axes3D)
-        
+            if plotter == "plotly":
+                fig = go.Figure()
+            elif plotter == "matplotlib":
+                fig = plt.figure()    
+                ax = fig.add_subplot(111, projection='3d')
+                
+        elif type(fig) == go.Figure:
+            plotter = "plotly"
+            
+        elif type(fig) == plt.Figure:
+            plotter = "matplotlib"
+            
+        # plot the contours of the cells
+        if plotter == "matplotlib":
+            proj3D = isinstance(ax, Axes3D)
+            
         for pt in self.coord_cells:
-            cell_corners = np.repeat(np.array([[pt.x, pt.y, pt.z]]), 5, 0)
+            cell_corners = \
+                scale * np.repeat(np.array([[pt.x, pt.y, pt.z]]), 5, 0)
         
             cell_corners = cell_corners + translate_to_corners
 
-            if proj3D:
-                ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2],
-                    'k')
-            else:
-                ax.plot(cell_corners[:,0], cell_corners[:,1], 'k')
+            if plotter == "matplotlib":
+                
+                if proj3D:
+                    ax.plot(cell_corners[:,0], cell_corners[:,1], cell_corners[:,2],
+                        'k')
+                else:
+                    ax.plot(cell_corners[:,0], cell_corners[:,1], 'k')
+                    
+            elif plotter == "plotly":
+                
+                fig.add_trace(go.Scatter3d(
+                    x = cell_corners[:,0],
+                    y = cell_corners[:,1],
+                    z = cell_corners[:,2],
+                    mode = 'lines',
+                    line = dict(color='red', width=5)
+                ))
             
-        if proj3D:
-            self.source.plot(fig, ax)
-        
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        if proj3D:
-            ax.set_zlabel('Z')
-        ax.set_aspect('equal')
-        plt.show() 
-        
+        if plotter == "matplotlib":
+            if proj3D:
+                self.source.plot(fig, ax)
+            
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            if proj3D:
+                ax.set_zlabel('Z')
+            ax.set_aspect('equal')
+            plt.show() 
+            
+        elif plotter == "plotly":
+            
+            fig.update_layout(showlegend=False)
+            fig.update_layout(
+                scene=dict(
+                    aspectmode='data'
+                )
+            )
+            fig.show()
+            
         return fig, ax
         
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
@@ -1196,7 +1235,6 @@ class transmit_array(radiating_object):
         rad_pat = radiation_pattern()
         rad_pat.create_from_field(theta, phi, rad_field)
         
-        
         if plot:
             
             if show_2D_map:
@@ -1204,8 +1242,14 @@ class transmit_array(radiating_object):
                 plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
                 plt.show()
             
-            rad_pat.plot(dB=dB, dB_range=dB_range)
-        
+            fig, ax = rad_pat.plot(dB=dB, dB_range=dB_range, show=False)
+            
+            if dB:
+                scale = dB_range
+            else:
+                scale = rad_pat.rad_pat.max()
+                
+            self.plot(fig = fig, ax = ax, scale=scale)
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
