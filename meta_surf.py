@@ -445,19 +445,29 @@ class radiation_pattern:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def plot(self, plotter="plotly"):
+    def plot(self, plotter="plotly", dB = True, dB_range = 20):
+        
         phi, theta = np.meshgrid(self.phi, self.theta)
         
-        # convert to cartesian coordinates
-        x = self.rad_pat * np.sin(theta) * np.cos(phi)
-        y = self.rad_pat * np.sin(theta) * np.sin(phi)
-        z = self.rad_pat * np.cos(theta)
+        if dB:
+            rad_pat = 20*np.log10(self.rad_pat)
+            rad_pat = rad_pat - rad_pat.max() + dB_range
+            rad_pat[rad_pat < 0] = 0
+            
+        else:
+            rad_pat = self.rad_pat
         
-        max_val = self.rad_pat.max()
+        # convert to cartesian coordinates
+        x = rad_pat * np.sin(theta) * np.cos(phi)
+        y = rad_pat * np.sin(theta) * np.sin(phi)
+        z = rad_pat * np.cos(theta)
+        
+        max_val = rad_pat.max()
         
         if plotter == "plotly":
+            
             fig = go.Figure(data=[
-                go.Surface(x=x, y=y, z=z, colorscale='Viridis')])
+                go.Surface(x=x, y=y, z=z, colorscale='Viridis', )])
             fig.update_layout(
                 scene=dict(
                     aspectmode='data'
@@ -465,12 +475,13 @@ class radiation_pattern:
             )
             fig.show()
             ax = None
+            
         elif plotter == "matplotlib":
         
             fig = plt.figure()
             ax = fig.add_subplot(111, projection='3d')
             ax.plot_surface(x, y, z, 
-                            facecolors=plt.cm.viridis(self.rad_pat / max_val)
+                            facecolors=plt.cm.viridis(rad_pat / max_val)
                             )
             ax.set_aspect('equal')
         
@@ -1157,10 +1168,17 @@ class transmit_array(radiating_object):
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
-    def radiation_pattern(self, plot=True, n_theta = 101, n_phi = 201, r = 100.):
+    def radiation_pattern(self, plot=True, n_theta = 51, n_phi = 201, 
+                          r = 100., hemisphere = True, dB = True, 
+                          dB_range=20, show_2D_map = False):
+        
+        if hemisphere:
+            theta_max = np.pi/2
+        else:
+            theta_max = np.pi
         
         # create a regularly spaced r, theta, phi grid
-        theta = np.linspace(0,np.pi, n_theta)
+        theta = np.linspace(0, theta_max, n_theta)
         phi = np.linspace(0, 2*np.pi, n_phi)
         rad_points = [point] * n_theta * n_phi
         cnt = 0
@@ -1181,11 +1199,12 @@ class transmit_array(radiating_object):
         
         if plot:
             
-            plt.figure()
-            plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
-            plt.show()
+            if show_2D_map:
+                plt.figure()
+                plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
+                plt.show()
             
-            rad_pat.plot()
+            rad_pat.plot(dB=dB, dB_range=dB_range)
         
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
