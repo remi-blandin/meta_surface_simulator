@@ -51,6 +51,8 @@ class point:
 
     def spherical_coords(self, points):
         
+        # the origin of the coordinates is placed at points
+        
         # if only one point is requested, make it a list object so that it is 
         # iterable
         if type(points) == point:
@@ -63,8 +65,8 @@ class point:
         
         for idx, pt in enumerate(points):
             r[idx] = self.distance_to(pt)
-            theta[idx] = np.arccos((self.z - pt.z) / r[idx])
-            phi[idx] = np.arctan2((self.y - pt.y), (self.x - pt.x))
+            theta[idx] = np.arccos((pt.z - self.z) / r[idx])
+            phi[idx] = np.arctan2((pt.y - self.y), (pt.x - self.x))
             
         return r, theta, phi
 
