@@ -123,14 +123,14 @@ class radiating_object:
             params['side'] = 10 * self.wavelgth
         if params['corner_pt'] == None:
             if params['plane'] == "xz":
-                params['corner_pt'] = point(params['side']/2., 0., 0.)
+                params['corner_pt'] = point(-params['side']/2., 0., 0.)
                 
             elif params['plane'] == "yz":
-                params['corner_pt'] = point(0., params['side']/2., 0.)
+                params['corner_pt'] = point(0., -params['side']/2., 0.)
                 
             elif params['plane'] == "xy":
-                params['corner_pt'] = point(params['side']/2, 
-                                         params['side']/2., 
+                params['corner_pt'] = point(-params['side']/2, 
+                                         -params['side']/2., 
                                          params['side'])
             
         #================================================#
@@ -186,8 +186,16 @@ class radiating_object:
         # can work
         if nb_fields == 1:
             axes = [axes]
+            
+        # generate a string containing the value of the other coordinate
+        if params['plane'] == "xz":
+            title_coord = ' y = ' + str(params['corner_pt'].y)
+        elif params['plane'] == "yz":
+            title_coord = ' x = ' + str(params['corner_pt'].x)
+        elif params['plane'] == "xy":
+            title_coord = ' z = ' + str(params['corner_pt'].z)
         
-        fig.suptitle("Plane " + params['plane'])
+        fig.suptitle("Plane " + params['plane'] + title_coord)
         
         images = []
         for f, ax, label in zip(fields, axes, field_labels):
