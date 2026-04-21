@@ -65,6 +65,7 @@ class point:
         
         for idx, pt in enumerate(points):
             r[idx] = self.distance_to(pt)
+            # theta[idx] = np.arccos((self.z - pt.z) / r[idx])
             theta[idx] = np.arccos((pt.z - self.z) / r[idx])
             phi[idx] = np.arctan2((pt.y - self.y), (pt.x - self.x))
             
@@ -97,7 +98,8 @@ class radiating_object:
             'corner_pt': None,
             'nb_side_pts': 50,
             'plot_grid': False,
-            'dB': False
+            'dB': False,
+            'dB_range': 60
             }
         
         params = {**defaults, **kwargs}
@@ -157,9 +159,13 @@ class radiating_object:
             
             if params['dB']:
                 fields[idx] = 20.*np.log10(
-                    np.abs(f.reshape((params['nb_side_pts'], params['nb_side_pts'])).T))
+                    np.abs(f.reshape((params['nb_side_pts'], 
+                                      params['nb_side_pts'])).T))
+                lower_bound = fields[idx].max() - params['dB_range']
+                fields[idx][fields[idx] < lower_bound] = lower_bound
             else:
-                fields[idx] = np.abs(f.reshape((params['nb_side_pts'], params['nb_side_pts'])).T)
+                fields[idx] = np.abs(f.reshape((params['nb_side_pts'], 
+                                                params['nb_side_pts'])).T)
             
             # remove infinite values
             inf_mask = np.isinf(fields[idx])
@@ -786,9 +792,7 @@ class unit_cell(radiating_object):
                          np.square(point.y) +\
                          np.square(point.z))
             theta_out = np.arccos(point.z / dp)
-            phi_out = np.arccos((point.y) / \
-                           np.sqrt(np.square(point.x) \
-                           + np.square(point.y)))
+            phi_out = np.arctan2(point.y, point.x)
             
             # FIXME: add the possibility to set the amplitude and the phase
             rad_field[idx] = self.field_from_sig(
