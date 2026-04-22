@@ -65,7 +65,6 @@ class point:
         
         for idx, pt in enumerate(points):
             r[idx] = self.distance_to(pt)
-            # theta[idx] = np.arccos((self.z - pt.z) / r[idx])
             theta[idx] = np.arccos((pt.z - self.z) / r[idx])
             phi[idx] = np.arctan2((pt.y - self.y), (pt.x - self.x))
             
@@ -195,11 +194,11 @@ class radiating_object:
             
         # generate a string containing the value of the other coordinate
         if params['plane'] == "xz":
-            title_coord = ' y = ' + str(params['corner_pt'].y)
+            title_coord = ', y = ' + str(params['corner_pt'].y)
         elif params['plane'] == "yz":
-            title_coord = ' x = ' + str(params['corner_pt'].x)
+            title_coord = ', x = ' + str(params['corner_pt'].x)
         elif params['plane'] == "xy":
-            title_coord = ' z = ' + str(params['corner_pt'].z)
+            title_coord = ', z = ' + str(params['corner_pt'].z)
         
         fig.suptitle("Plane " + params['plane'] + title_coord)
         
@@ -521,6 +520,7 @@ class radiation_pattern:
         # Call Numba-accelerated interpolation
         interp_val = self._interpolate_numba(self.rad_pat, points_pixel)
                 
+        # FIXME: Not compatible with plotly
         # --- Draw spheres at interpolated points ---
         def add_sphere(ax, x, y, z, radius=0.05, color='red'):
             """Add a 3D sphere to the axis."""

@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 #----------------------------------------------------------------------------#
 # Test radiation pattern importation
 
-rp = radiation_pattern("horn_realized_gain_y.csv", flip_ud=True)
+rp = radiation_pattern("horn_realized_gain_y_6GHz.csv")
 
 theta = [0.1, 0.3, 0.9, 2.3]
 phi = [0.2, 1.6, 2.7, -3.1]
 
-rp.value(theta, phi, plot=True)
+rp.value(theta, phi, plot=False)
 
 #----------------------------------------------------------------------------#
 # Test source modelling from radiation pattern
