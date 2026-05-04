@@ -69,3 +69,23 @@ for idx,z in enumerate([-0.5,-0.75,-1]):
     fig, axes = src.plot_field(plane="xy", corner_pt=point(-ta_length/2,-ta_length/2,0.), 
                   side=ta_length, nb_side_pts = 100, dB=True)
     ta.plot(fig, axes[0])
+    
+# compare incident field and input signals
+inc_field = 20.*np.log10(np.abs(ta.incident_field()))
+inc_field = inc_field - np.max(inc_field)
+vmin = np.min(inc_field)
+input_signals = 20.*np.log10(np.abs(ta.input_signals()))
+input_signals = input_signals - np.max(input_signals)
+vmin = np.min([vmin, np.min(input_signals)])
+
+plt.figure()
+plt.imshow(inc_field, vmin=vmin)
+plt.colorbar()
+plt.title("Incident field")
+plt.show()
+
+plt.figure()
+plt.imshow(input_signals, vmin=vmin)
+plt.colorbar()
+plt.title("Input signals")
+plt.show()

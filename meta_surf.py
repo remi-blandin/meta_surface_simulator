@@ -1242,6 +1242,13 @@ class transmit_array(radiating_object):
             self.phase_mask
             )
         
+        # FIXME: the loop can probably be avoided
+        for idx, pt in enumerate(self.coord_cells):
+            
+            r, theta, phi = self.source.position.spherical_coords(pt)
+            cell_2_source[idx] = self.source.directivity(theta, phi) * \
+                cell_2_source[idx]
+        
         return cell_2_source
             
     
