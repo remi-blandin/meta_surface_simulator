@@ -1177,6 +1177,10 @@ class transmit_array(radiating_object):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def input_signals(self, power=1.):
+        
+        # compute the wave radiated by the source at each cell location
+        # /!\ THE DIRECTIVITY OF THE CELL IS NOT TAKEN INTO ACCOUNT /!\
+        # (but it's normal)
 
         input_signals = self.source.field(self.coord_cells)[0]
         
@@ -1190,6 +1194,9 @@ class transmit_array(radiating_object):
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def output_signals(self, power=1.):
+        
+        # Compute the signal arriving at the other cell
+        # The directivity of the input cell is taken into accout there
         
         output_sig = self.unit_cell.output_sig(
             self.input_sig, self.phase_mask, self.amp_mask)
