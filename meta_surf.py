@@ -970,6 +970,10 @@ class transmit_array(radiating_object):
                 self.coord_cells[idx] = point(x, y, 0.)
                 idx = idx + 1
                 
+        # calculate the spherical coordinates of the source at each cell
+        self.r_src, self.theta_src, self.phi_src = \
+            self.source.position.spherical_coords(self.coord_cells)
+                
         self.input_signals()
         self.output_signals()
         
@@ -1173,16 +1177,29 @@ class transmit_array(radiating_object):
     
     def output_sigs(self):
         return self.output_sig.reshape(self.n_cell_x, self.n_cell_y)
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def incident_field(self, power=1.):
+        
+        # compute the inident field from the source on each cell of the 
+        # metasurface
+        
+        inc_field = self.source.field(self.coord_cells)[0]
+        inc_field = inc_field.reshape((self.n_cell_x, self.n_cell_y))
+        
+        return(inc_field)
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def input_signals(self, power=1.):
         
-        # compute the wave radiated by the source at each cell location
-        # /!\ THE DIRECTIVITY OF THE CELL IS NOT TAKEN INTO ACCOUNT /!\
-        # (but it's normal)
+        # compute the input signal of each cell 
 
-        input_signals = self.source.field(self.coord_cells)[0]
+        input_signals = self.unit_cell.input_sig( 
+            self.source.field(self.coord_cells)[0],
+            self.theta_src, self.phi_src
+            )
         
         self.input_sig = input_signals
         
@@ -1206,6 +1223,27 @@ class transmit_array(radiating_object):
         output_sig = output_sig.reshape((self.n_cell_x, self.n_cell_y))
         
         return output_sig
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def transmission_cells_to_source(self):
+        
+        # compute the transmission coefficient from the cells to the source
+        
+        # calculate the output signals for an input signal equal to 1
+        output_sig = self.unit_cell.output_sig(
+            np.ones(self.nb_cell, dtype=complex),
+            self.phase_mask, self.amp_mask
+            )
+        
+        # FIXME: this is probably wrong because the source is on the wrong side
+        cell_2_source = self.unit_cell.field_from_sig(
+            output_sig, self.r_src, self.theta_src, self.phi_src,
+            self.phase_mask
+            )
+        
+        return cell_2_source
+            
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
