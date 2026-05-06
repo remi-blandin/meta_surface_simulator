@@ -269,7 +269,7 @@ class radiating_object:
         fig._images = images
         fig._cbar = cbar
         
-        plt.show() 
+        plt.show(block=False) 
 
         return fig, axes
 
@@ -358,7 +358,7 @@ class point_grid_2d:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show() 
+        plt.show(block=False) 
         
 ##############################################################################
 
@@ -864,7 +864,7 @@ class source_from_radpat(radiating_object):
                 'r.', label='S')
         
         ax.set_aspect('equal')
-        plt.show() 
+        plt.show(block=False) 
         
         return fig, ax
         
@@ -1041,7 +1041,7 @@ class transmit_array(radiating_object):
             if proj3D:
                 ax.set_zlabel('Z')
             ax.set_aspect('equal')
-            plt.show() 
+            plt.show(block=False) 
             
         elif plotter == "plotly":
             
@@ -1306,7 +1306,7 @@ class transmit_array(radiating_object):
             if show_2D_map:
                 plt.figure()
                 plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
-                plt.show()
+                plt.show(block=False)
             
             fig, ax = rad_pat.plot(dB=dB, dB_range=dB_range, show=False)
             
@@ -1469,7 +1469,7 @@ class desordered_medium(radiating_object):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show() 
+        plt.show(block=False) 
         
         return fig, ax
     
