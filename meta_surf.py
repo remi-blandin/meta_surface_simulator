@@ -15,7 +15,8 @@ pio.renderers.default = "browser"
 
 __all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
            "simplified_horn_source", "source_from_radpat", "plane_wave", 
-           "transmit_array", "desordered_medium", "radiation_pattern"]
+           "transmit_array", "normal_reflector", "desordered_medium", 
+           "radiation_pattern"]
 
 ##############################################################################
 
@@ -97,7 +98,7 @@ class radiating_object:
             'corner_pt': None,
             'nb_side_pts': 50,
             'plot_grid': False,
-            'dB': False,
+            'quantity': 'magnitude_db',
             'dB_range': 60
             }
         
@@ -156,15 +157,30 @@ class radiating_object:
         max_fields = []
         for idx, f in enumerate(fields):
             
-            if params['dB']:
+            if params['quantity'] == 'magnitude_db':
                 fields[idx] = 20.*np.log10(
                     np.abs(f.reshape((params['nb_side_pts'], 
                                       params['nb_side_pts'])).T))
                 lower_bound = fields[idx].max() - params['dB_range']
                 fields[idx][fields[idx] < lower_bound] = lower_bound
-            else:
+                title_quant = ' magnitude (dB) '
+                
+            elif params['quantity'] == 'real':
+                fields[idx] = np.real(f.reshape((params['nb_side_pts'], 
+                                                params['nb_side_pts'])).T)
+                title_quant = ' real part '
+            elif params['quantity'] == 'imag':
+                fields[idx] = np.imag(f.reshape((params['nb_side_pts'], 
+                                                params['nb_side_pts'])).T)
+                title_quant = ' imaginary part '
+            elif params['quantity'] == 'magnitude':
                 fields[idx] = np.abs(f.reshape((params['nb_side_pts'], 
                                                 params['nb_side_pts'])).T)
+                title_quant = ' magnitude '
+            elif params['quantity'] == 'phase':
+                fields[idx] = np.angle(f.reshape((params['nb_side_pts'], 
+                                                params['nb_side_pts'])).T)
+                title_quant = ' phase '
             
             # remove infinite values
             inf_mask = np.isinf(fields[idx])
@@ -200,7 +216,7 @@ class radiating_object:
         elif params['plane'] == "xy":
             title_coord = ', z = ' + str(params['corner_pt'].z)
         
-        fig.suptitle("Plane " + params['plane'] + title_coord)
+        fig.suptitle("Plane " + params['plane'] + title_quant + title_coord)
         
         images = []
         for f, ax, label in zip(fields, axes, field_labels):
@@ -217,13 +233,15 @@ class radiating_object:
                            pad=0.02, 
                            shrink=0.5)
         
-        if params['dB']:
+        if params['quantity'] == 'magnitude_db':
             cbar.set_label('|E| (dB)')
         else:
             cbar.set_label('|E|')
             
         #================================================#
         # CREATE SLIDERS TO CONTROL MIN / MAX
+        
+        # FIXME: bug if the field is perfectly uniform
         
         # create a slider to adjust the maximal color value 
         ax_slider_min = plt.axes([0.2, 0.1, 0.6, 0.03])  # [left, bottom, width, height]
@@ -271,7 +289,7 @@ class radiating_object:
         
         plt.show() 
 
-        return fig, axes
+        return fig, axes, fields
 
             
 ##############################################################################
@@ -1321,6 +1339,74 @@ class transmit_array(radiating_object):
 
     def field_labels(self):
         return ["Radiated field from transmit array"]
+    
+##############################################################################
+
+class normal_reflector(radiating_object):
+    """A simple rectangular normal reflector model"""
+    
+    def __init__(self, source, size_x=0.1, size_y=0.1, 
+                 position=point(0., 0., 0.5), reflexion_coef = -1.):
+        
+        super().__init__(position=position)
+        
+        self.source = source
+        self.wavelgth = source.wavelgth
+        self.Lx = size_x
+        self.Ly = size_y
+        self.reflexion_coef = reflexion_coef
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field(self, points):
+        
+        nb_points = len(points)
+        rad_field = np.zeros(nb_points, dtype=np.complex128)
+        src = self.source
+        
+        # compute the field directly radiated by the source
+        # FIXME: points which are not in line of sight of the source
+        # are also computed
+        direct_field = src.field(points)
+        dRz = self.position.z - src.position.z
+        
+        for idx, pt in enumerate(points):
+            
+            # check if the reflection point is on the reflector
+            
+            # compute the ditance between the source and the point of 
+            # reflection in the xy plane
+            
+            dz = self.position.z - pt.z
+            if dz > 0:
+                dx = pt.x - src.position.x 
+                x_r = src.position.x + dx / (1 + dz/dRz)
+                
+                dy = pt.y - src.position.y
+                y_r = src.position.y + dy / (1 + dz/dRz)
+                
+                # if the point can be reached by a reflection, 
+                # compute the field radiated by the reflector
+                if (np.abs(self.position.x - x_r) < self.Lx/2) and \
+                    (np.abs(self.position.y - y_r) < self.Ly/2):
+
+                    refl_pt = point(x_r, y_r, self.position.z)
+                    field_R = src.field(refl_pt)
+                    r = pt.distance_to(refl_pt)
+                    rad_field[idx] = field_R[0] * self.reflexion_coef * \
+                        np.exp(-1j * 2. * np.pi * r /self.wavelgth) \
+                        # / 4. / np.pi / r
+                
+
+        # add direct and reflected fields
+        field = rad_field + direct_field[0]
+            
+        return [direct_field[0], rad_field, field]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field_labels(self):
+        return ["Direct field", "Reflected field", "Total field"]
                 
 ##############################################################################
 
