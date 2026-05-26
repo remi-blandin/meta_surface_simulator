@@ -13,10 +13,10 @@ import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default = "browser"
 
-__all__ = ["point", "point_grid_2d", "simple_unit_cell", "unit_cell",
-           "simplified_horn_source", "source_from_radpat", "plane_wave", 
-           "transmit_array", "normal_reflector", "desordered_medium", 
-           "radiation_pattern"]
+__all__ = ["point", "point_grid_2d", "point_grid_3d", "simple_unit_cell", 
+           "unit_cell", "simplified_horn_source", "source_from_radpat", 
+           "plane_wave", "transmit_array", "normal_reflector", 
+           "desordered_medium", "radiation_pattern"]
 
 ##############################################################################
 
@@ -287,7 +287,7 @@ class radiating_object:
         fig._images = images
         fig._cbar = cbar
         
-        plt.show() 
+        plt.show(block=False) 
 
         return fig, axes, fields
 
@@ -376,7 +376,81 @@ class point_grid_2d:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show() 
+        plt.show(block=False) 
+        
+##############################################################################
+
+class point_grid_3d:
+    
+    """A 3d cartesian grid of points"""
+    
+    def __init__(self, **kwargs):
+        
+        defaults = {
+            'dims': point(0.5, 0.5, 0.5),
+            'corner_pt': None,
+            'dist_points' : 0.05,
+            'plot_grid': False,
+            }
+        
+        params = {**defaults, **kwargs}
+        
+        if params['corner_pt'] is None:
+            params['corner_pt'] = point(
+                -params['dims'].x /2,
+                -params['dims'].y /2,
+                0.
+                )
+            
+        self.nb_pts_per_dim = point(
+            int(np.floor(params['dims'].x / params['dist_points'])),
+            int(np.floor(params['dims'].y / params['dist_points'])),
+            int(np.floor(params['dims'].z / params['dist_points'])),
+            )
+        
+        self.nb_pts = self.nb_pts_per_dim.x * \
+            self.nb_pts_per_dim.y * \
+            self.nb_pts_per_dim.z
+        
+        self.points = [None] * self.nb_pts
+        
+        idx = 0
+        for i in range(0, self.nb_pts_per_dim.x):
+            for j in range(0, self.nb_pts_per_dim.y):
+                for k in range(0, self.nb_pts_per_dim.z):
+                    
+                    self.points[idx] = point(
+                        params['corner_pt'].x + i * params['dist_points'],
+                        params['corner_pt'].y + j * params['dist_points'],
+                        params['corner_pt'].z + k * params['dist_points']
+                        )
+                    idx = idx + 1
+                    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def x(self):
+        return [point.x for point in self.points]
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def y(self):
+        return [point.y for point in self.points]
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def z(self):
+        return [point.z for point in self.points]
+                    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def plot(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(self.x(), self.y(), self.z())
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_aspect('equal')
+        plt.show(block=False) 
         
 ##############################################################################
 
@@ -882,7 +956,7 @@ class source_from_radpat(radiating_object):
                 'r.', label='S')
         
         ax.set_aspect('equal')
-        plt.show() 
+        plt.show(block=False) 
         
         return fig, ax
         
@@ -1059,7 +1133,7 @@ class transmit_array(radiating_object):
             if proj3D:
                 ax.set_zlabel('Z')
             ax.set_aspect('equal')
-            plt.show() 
+            plt.show(block=False) 
             
         elif plotter == "plotly":
             
@@ -1324,7 +1398,7 @@ class transmit_array(radiating_object):
             if show_2D_map:
                 plt.figure()
                 plt.imshow(np.abs(np.reshape(rad_field, (n_theta, n_phi))))
-                plt.show()
+                plt.show(block=False)
             
             fig, ax = rad_pat.plot(dB=dB, dB_range=dB_range, show=False)
             
@@ -1555,7 +1629,7 @@ class desordered_medium(radiating_object):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show() 
+        plt.show(block=False) 
         
         return fig, ax
     
