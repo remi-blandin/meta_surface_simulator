@@ -5,9 +5,10 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.widgets import Slider
 import csv
-from numba import jit
+from numba import jit, njit
 from scipy.constants import c  # Speed of light in vacuum
 import skrf as rf
+import time
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -1055,7 +1056,6 @@ class transmit_array(radiating_object):
         # Generate lists containing the coordinates ordered by pairs
         self.coord_cells = [point]*self.nb_cell
         
-        # FIXME: possible to add a position attribute later
         idx = 0
         for x in self.x:
             for y in self.y:
@@ -1298,7 +1298,6 @@ class transmit_array(radiating_object):
         input_signals = input_signals.reshape((self.n_cell_x, self.n_cell_y))
         
         return input_signals
-        
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
@@ -1342,27 +1341,91 @@ class transmit_array(radiating_object):
                 cell_2_source[idx]
         
         return cell_2_source
-            
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
     def field(self, points):
                 
+        start = time.perf_counter()
+        
         nb_points = len(points)
-        rad_field = np.empty(nb_points, dtype=np.complex128)
         
-        for idx, point in enumerate(points):
+        # accelerated computation for simple unite cell model
+        # if False: 
+        if type(self.unit_cell) is simple_unit_cell:
             
-            dp, theta_out, phi_out = point.spherical_coords(self.coord_cells)
-                    
-            field_from_cells = self.unit_cell.field_from_sig(
-                    self.output_sig, dp,
-                    theta_out, phi_out, self.phase_mask)
+            # extract the coordinates of the querry points
+            point_coords = np.empty((nb_points, 3))
+            for idx, point in enumerate(points):
+                point_coords[ idx,:] = np.array([point.x, point.y, point.z])
+            
+            rad_field = self._field_kernel_simple_cell(self.x, self.y, nb_points, 
+                      point_coords, self.unit_cell.area, self.wavelgth,
+                      self.output_sig)
+            
+        # normal computation for other cells
+        else:
+            
+            rad_field = np.empty(nb_points, dtype=np.complex128)
         
-            rad_field[idx] = field_from_cells.sum()
+            for idx, point in enumerate(points):
+                
+                dp, theta_out, phi_out = point.spherical_coords(self.coord_cells)
+                        
+                field_from_cells = self.unit_cell.field_from_sig(
+                        self.output_sig, dp,
+                        theta_out, phi_out, self.phase_mask)
+            
+                rad_field[idx] = field_from_cells.sum()
+            
+        stop = time.perf_counter()
+        print(f"Time compute field: {stop - start} s")
         
         return [rad_field]
     
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    @staticmethod
+    @njit
+    def _field_kernel_simple_cell(x_cells, y_cells, nb_points, point_coords,
+                  uc_area, wavelgth, output_sigs):
+        
+        nb_x = len(x_cells)
+        nb_y = len(y_cells)
+        # nb_cells = nb_x * nb_y
+        # rad_field = np.empty((nb_points, nb_cells), dtype = np.complex128)
+        rad_field = np.empty(nb_points, dtype = np.complex128)
+        
+        for pt in range(0, nb_points):
+            field = 0. + 1j * 0.
+            idx = 0
+            for cell_x in range(0, nb_x):
+                for cell_y in range(0, nb_y):
+                
+                    # calculate spherical coordinates of the querry point in 
+                    # each cell landmark
+                    dx = -(x_cells[cell_x] - point_coords[pt, 0])
+                    dy = -(y_cells[cell_y] - point_coords[pt, 1])
+                    
+                    r = np.sqrt(dx**2 + dy**2 + point_coords[pt, 2]**2)
+                    theta = np.arccos(point_coords[pt, 2] / r)
+                    
+                    # calculate directivity factor
+                    d = 4.*np.pi * uc_area * np.square(np.cos(theta)) \
+                        / np.square(wavelgth)
+                        
+                    # calculate the field radiated by this cell
+                    field =  field + \
+                        output_sigs[idx] * d * wavelgth * \
+                        np.exp(-1j * 2. * np.pi * r / wavelgth) \
+                        /4. / np.pi / r
+                        
+                    idx = idx + 1
+                    
+            rad_field[pt] = field
+            
+        return rad_field
+           
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def radiation_pattern(self, plot=True, n_theta = 51, n_phi = 201, 
