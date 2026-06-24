@@ -11,7 +11,7 @@ power = 1.
 
 
 # create a unit cell
-ucell = simple_unit_cell(0.03*0.03)
+ucell = simple_unit_cell(side_length=0.03, wavelgth=0.03)
 directivity = ucell.directivity(theta, phi)
 input_sig = ucell.input_sig(1., theta, phi)
 

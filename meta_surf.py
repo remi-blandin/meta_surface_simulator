@@ -688,7 +688,7 @@ class simple_unit_cell:
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def directivity(self, theta, phi):
-        return 4.*np.pi * self.area * np.square(np.cos(theta)) \
+        return 4.*np.pi * self.area * np.cos(theta) \
     / np.square(self.wavelgth)
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
