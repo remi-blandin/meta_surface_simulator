@@ -1344,7 +1344,7 @@ class transmit_array(radiating_object):
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
-    def field(self, points):
+    def field(self, points, print_execution_time = False):
                 
         start = time.perf_counter()
         
@@ -1378,8 +1378,9 @@ class transmit_array(radiating_object):
             
                 rad_field[idx] = field_from_cells.sum()
             
-        stop = time.perf_counter()
-        print(f"Time compute field: {stop - start} s")
+        if print_execution_time:
+            stop = time.perf_counter()
+            print(f"Time compute field: {stop - start} s")
         
         return [rad_field]
     
@@ -1471,7 +1472,72 @@ class transmit_array(radiating_object):
                 scale = rad_pat.rad_pat.max()
                 
             self.plot(fig = fig, ax = ax, scale=scale)
+            
+        return rad_pat
     
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def find_max_radiation(self, distance = 1., hemisphere = True, 
+                           target_resolution = None):
+        
+        
+        if hemisphere:
+            theta_max = np.pi/2
+            n_theta = 19
+        else:
+            theta_max = np.pi
+            n_theta = 37
+        
+        # the number of angles is chosen to have an initial angular resolution
+        # of 5 degrees
+        n_phi = 73
+        theta_min = 0.
+        phi_min = 0.
+        phi_max = 2*np.pi
+        
+        if target_resolution is None:
+            target_resolution = np.pi / 180.
+            
+        resolution = (theta_max - theta_min) / (n_theta - 1)
+        
+        while resolution > target_resolution:
+            
+            resolution = (theta_max - theta_min) / (n_theta - 1)
+            
+            # print(f'Resolution = {resolution * 180/np.pi:5f} deg')
+            
+            # create a regularly spaced r, theta, phi grid
+            theta = np.linspace(theta_min, theta_max, n_theta)
+            phi = np.linspace(phi_min, phi_max, n_phi)
+            rad_points = [point] * n_theta * n_phi
+            cnt = 0
+            for idx_t in range(0, n_theta):
+                for idx_p in range(0, n_phi):
+                    rad_points[cnt] = point(distance, theta[idx_t], phi[idx_p], 
+                                            spherical_coord=True)
+                    cnt = cnt + 1
+                    
+            # calculate the field at these points
+            rad_field = self.field(rad_points)
+            rad_field = np.abs(np.reshape(rad_field, (n_theta, n_phi)))
+            
+            # locate the maximum
+            idx_theta_max, idx_phi_max = np.unravel_index(
+                np.argmax(rad_field), rad_field.shape)
+        
+            theta_dir_max = theta[idx_theta_max]
+            phi_dir_max = phi[idx_phi_max]
+            
+            # reduce the search interval around the maximum
+            theta_min = theta_dir_max - 2*resolution
+            theta_max = theta_dir_max + 2*resolution
+            phi_min = phi_dir_max - 2*resolution
+            phi_max = phi_dir_max + 2*resolution
+            n_theta = 21
+            n_phi = 21
+            
+        return theta_dir_max, phi_dir_max
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def field_labels(self):
