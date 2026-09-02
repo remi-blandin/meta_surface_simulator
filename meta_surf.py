@@ -16,8 +16,8 @@ pio.renderers.default = "browser"
 
 __all__ = ["point", "point_grid_2d", "point_grid_3d", "simple_unit_cell", 
            "unit_cell", "simplified_horn_source", "source_from_radpat", 
-           "plane_wave", "transmit_array", "normal_reflector", 
-           "desordered_medium", "radiation_pattern"]
+           "source_from_measurement", "plane_wave", "transmit_array", 
+           "normal_reflector", "desordered_medium", "radiation_pattern"]
 
 ##############################################################################
 
@@ -981,6 +981,43 @@ class source_from_radpat(radiating_object):
 
     def field_labels(self):
         return ["Field radiated by a source defined from a radiation pattern"]
+    
+##############################################################################
+
+class source_from_measurement(radiating_object):
+    
+    """A source model from measurement at specific positions"""
+    
+    def __init__(self, transfer_functions, freqs, position, cell_positions,
+                 wavelgth = 0.06):
+        
+        super().__init__(position=position)
+        self.transfer_functions = transfer_functions
+        self.cell_positions = cell_positions
+        self.wavelgth = wavelgth
+        self.wavelgths = c / freqs
+        
+        self.idx_wl = np.argmin((self.wavelgths - self.wavelgth)**2)
+        
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def field(self, points):
+        
+        nb_points = len(points)
+        
+        # find the closest points
+        field = np.zeros(nb_points, dtype=np.complex64)
+        xy_coords = np.zeros(2)
+        for idx, pt in enumerate(points):
+            xy_coords[0] = pt.x
+            xy_coords[1] = pt.y
+            dist_squared = np.sum((xy_coords - self.cell_positions)**2, 
+                                  axis=1)
+            field[idx] = self.transfer_functions[self.idx_wl, 
+                                                 np.argmin(dist_squared)]
+            
+        return(field)
+        
 
 ##############################################################################
 
