@@ -23,9 +23,9 @@ phase_mask = "focal_point"
 theta_beam = np.pi/2
 phi_beam = np.pi/4
 
-focal_point = point(10, 30*np.pi/180, 30*np.pi/180, spherical_coord=True)
+focal_point = point(0.3, 30*np.pi/180, 90*np.pi/180, spherical_coord=True)
 
-quant = False
+quant = True
 
 #----------------------------------------------------------------------------#
 # Initialise metasuurface
@@ -74,8 +74,8 @@ ta.radiation_pattern()
 
 res = 20
 
-ta.plot_field(plane="xz", nb_side_pts=res)
-# ta.plot_field(plane="yz", nb_side_pts=res)
+# ta.plot_field(plane="xz", nb_side_pts=res)
+ta.plot_field(plane="yz", nb_side_pts=res)
 # ta.plot_field(plane="xy", nb_side_pts=res)
 
 # ta.plot_field(plane="xz", nb_side_pts=res, corner_pt=point(0.3,0., 0.3))

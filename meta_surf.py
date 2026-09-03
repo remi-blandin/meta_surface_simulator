@@ -1267,7 +1267,9 @@ class transmit_array(radiating_object):
             
             self.phase_mask[idx] = (-2. * np.pi * (
                 cell.distance_to(focal_point) - focal_point.z) 
-                / self.wavelgth)  % (2. * np.pi)
+                / self.wavelgth 
+                + np.angle(self.input_sig[idx])
+                )  % (2. * np.pi)
             if quantize:
                 self.phase_mask[idx]  = \
                     round(((self.phase_mask[idx]) % np.pi) / np.pi) * np.pi
