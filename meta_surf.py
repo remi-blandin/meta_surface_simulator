@@ -1016,7 +1016,7 @@ class source_from_measurement(radiating_object):
             field[idx] = self.transfer_functions[self.idx_wl, 
                                                  np.argmin(dist_squared)]
             
-        return(field)
+        return([field])
         
 
 ##############################################################################
