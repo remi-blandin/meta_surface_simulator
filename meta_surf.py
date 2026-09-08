@@ -1576,6 +1576,67 @@ class transmit_array(radiating_object):
             n_phi = 21
             
         return theta_dir_max, phi_dir_max
+    
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def find_max_in_plane_xy(self, distance = 0.5, xmin = -0.3, xmax = 0.3,
+                             ymin = -0.3, ymax = 0.3, 
+                             target_resolution = None):
+        
+        delta_x = xmax - xmin
+        delta_y = ymax - ymin
+        
+        # initial resolution is chosen to be roughly 1 wavelength
+        n_x = int(np.ceil((delta_x) / self.wavelgth))
+        n_y = int(np.ceil((delta_y) / self.wavelgth))
+        
+        if target_resolution is None:
+            target_resolution = 0.001
+        
+        res_x = delta_x / n_x
+        res_y = delta_y / n_y
+        resolution_max = max(res_x, res_y)
+        
+        while resolution_max > target_resolution:
+            
+            delta_x = xmax - xmin
+            delta_y = ymax - ymin
+            res_x = delta_x / n_x
+            res_y = delta_y / n_y
+            resolution_max = max(res_x, res_y)
+            
+            # print(f'Resolution max: {resolution_max * 1000} mm')
+            
+            # create a regular grid to searh for the maximum
+            x = np.linspace(xmin, xmax, n_x)
+            y = np.linspace(ymin, ymax, n_y)
+            grid_points = [point] * n_x * n_y
+            cnt = 0
+            for idx_x in range(n_x):
+                for idx_y in range(n_y):
+                    grid_points[cnt] = point(xmin + idx_x * res_x, 
+                                             ymin + idx_y * res_y, distance)
+                    cnt = cnt + 1
+            
+            # calculate the field at these points
+            field_plane = self.field(grid_points)
+            field_plane = np.abs(np.reshape(field_plane, (n_x, n_y)))
+            
+            # locate the maximum
+            idx_xmax, idx_ymax = np.unravel_index(
+                np.argmax(field_plane), field_plane.shape)
+            x_max = x[idx_xmax]
+            y_max = y[idx_ymax]
+            
+            # reduce the search interval around the maximum
+            xmin = x_max - 2 * res_x
+            xmax = x_max + 2 * res_x
+            ymin = y_max - 2 * res_y
+            ymax = y_max + 2 * res_y
+            n_x = 21
+            n_y = 21
+            
+        return x_max, y_max
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
