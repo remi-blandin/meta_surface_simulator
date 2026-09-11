@@ -148,39 +148,45 @@ class radiating_object:
         # COMPUTE FIELDS
             
         # compute field on the grid
-        fields = self.field(g.points)
-        nb_fields = len(fields)
+        fields_raw = self.field(g.points)
+        nb_fields = len(fields_raw)
         field_labels = self.field_labels()
         
-        # reshape the field data so that they correspond to the grid and get
-        # the overall minimal and maximal value
+        # reshape the field data so that they correspond to the grid 
+        for idx, f in enumerate(fields_raw):
+            fields_raw[idx] = f.reshape((params['nb_side_pts'], 
+                              params['nb_side_pts'])).T
+            
+        # convert to the desired quantity and get the overall minimal and 
+        # maximal values
+        fields = [None] * nb_fields
         min_fields = []
         max_fields = []
-        for idx, f in enumerate(fields):
+        for idx, f in enumerate(fields_raw):
             
             if params['quantity'] == 'magnitude_db':
-                fields[idx] = 20.*np.log10(
-                    np.abs(f.reshape((params['nb_side_pts'], 
-                                      params['nb_side_pts'])).T))
+                fields[idx] = 20.*np.log10(np.abs(f))
                 lower_bound = fields[idx].max() - params['dB_range']
                 fields[idx][fields[idx] < lower_bound] = lower_bound
                 title_quant = ' magnitude (dB) '
                 
+            elif params['quantity'] == 'power_dB':
+                fields[idx] = 20.*np.log10(np.abs(f ** 2))
+                lower_bound = fields[idx].max() - params['dB_range']
+                fields[idx][fields[idx] < lower_bound] = lower_bound
+                title_quant = ' power (dB) '
+                
             elif params['quantity'] == 'real':
-                fields[idx] = np.real(f.reshape((params['nb_side_pts'], 
-                                                params['nb_side_pts'])).T)
+                fields[idx] = np.real(f)
                 title_quant = ' real part '
             elif params['quantity'] == 'imag':
-                fields[idx] = np.imag(f.reshape((params['nb_side_pts'], 
-                                                params['nb_side_pts'])).T)
+                fields[idx] = np.imag(f)
                 title_quant = ' imaginary part '
             elif params['quantity'] == 'magnitude':
-                fields[idx] = np.abs(f.reshape((params['nb_side_pts'], 
-                                                params['nb_side_pts'])).T)
+                fields[idx] = np.abs(f)
                 title_quant = ' magnitude '
             elif params['quantity'] == 'phase':
-                fields[idx] = np.angle(f.reshape((params['nb_side_pts'], 
-                                                params['nb_side_pts'])).T)
+                fields[idx] = np.angle(f)
                 title_quant = ' phase '
             
             # remove infinite values
@@ -236,6 +242,8 @@ class radiating_object:
         
         if params['quantity'] == 'magnitude_db':
             cbar.set_label('|E| (dB)')
+        elif params['quantity'] == 'power_dB':
+            cbar.set_label('|E²| (dB)')
         else:
             cbar.set_label('|E|')
             
@@ -290,7 +298,7 @@ class radiating_object:
         
         plt.show(block=False) 
 
-        return fig, axes, fields
+        return fig, axes, fields_raw
 
             
 ##############################################################################
