@@ -688,16 +688,21 @@ class radiation_pattern:
 class simple_unit_cell:
     """A simple model for a unit cell"""
     
-    def __init__(self, side_length=0.03, wavelgth=0.06):
+    def __init__(self, side_length=0.03, wavelgth=0.06, 
+                 omnidirectional = False):
         self.side_length = side_length
         self.area = np.square(side_length)
         self.wavelgth = wavelgth
+        self.omnidirectional = omnidirectional
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
         
     def directivity(self, theta, phi):
-        return 4.*np.pi * self.area * np.cos(theta) \
-    / np.square(self.wavelgth)
+        if self.omnidirectional:
+            return 1.
+        else:
+            return 4.*np.pi * self.area * np.cos(theta) \
+        / np.square(self.wavelgth)
     
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
     
@@ -1644,7 +1649,7 @@ class transmit_array(radiating_object):
             n_x = 21
             n_y = 21
             
-        return x_max, y_max
+        return x_max, y_max, field_plane.max()
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
