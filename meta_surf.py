@@ -380,6 +380,16 @@ class point_grid_2d:
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
+    def pts_coords(self):
+        
+        coords = np.empty((self.nb_pts, 3))
+        for idx, pt in enumerate(self.points):
+            coords[idx, :] = np.array([pt.x, pt.y, pt.z])
+        
+        return coords
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
     def plot(self):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -1121,6 +1131,17 @@ class transmit_array(radiating_object):
         self.input_signals()
         self.output_signals()
         
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
+
+    def array_coord_cells(self):
+        
+        coords = np.empty((self.nb_cell, 3))
+        
+        for idx, pt in enumerate(self.coord_cells):
+            coords[idx,:] = np.array([pt.x, pt.y, pt.z])
+            
+        return coords
+
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - #
 
     def plot(self, fig=None, ax=None, plotter="plotly", scale = 1.):
